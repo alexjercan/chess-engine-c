@@ -1,0 +1,20 @@
+{
+  "name": "chess-engine-c",
+  "version": "1.0.0",
+  "description": "Trying to play around with creating a chess engine and a small app to play against it.",
+  "scripts": {
+    "build": "webpack --config webpack.config.js",
+    "serve": "webpack serve --config webpack.config.js",
+    "format": "prettier --write \"src/**/*.ts\" \"src/**/*.html\" webpack.config.js"
+  },
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "html-webpack-plugin": "^5.6.3",
+    "prettier": "^3.5.3",
+    "ts-loader": "^9.5.2",
+    "webpack": "^5.99.7",
+    "webpack-cli": "^6.0.1",
+    "webpack-dev-server": "^5.2.1"
+  }
+}
