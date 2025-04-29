@@ -15,12 +15,36 @@ canvas.width = CANVAS_WIDTH;
 canvas.height = CANVAS_HEIGHT;
 root.appendChild(canvas);
 
+let xCoordinate = -1;
+let yCoordinate = -1;
+let clicked = false;
+canvas.addEventListener("mousemove", (event) => {
+    const rect = canvas.getBoundingClientRect();
+    xCoordinate = event.clientX - rect.left;
+    yCoordinate = event.clientY - rect.top;
+});
+canvas.addEventListener("click", (event) => {
+    const rect = canvas.getBoundingClientRect();
+    xCoordinate = event.clientX - rect.left;
+    yCoordinate = event.clientY - rect.top;
+    clicked = true;
+});
+
 const ctx = canvas.getContext("2d");
 
 type InitFunction = (memory: number, size: number) => void;
 type TickFunction = (deltaTime: number) => void;
 
 let w: WebAssembly.WebAssemblyInstantiatedSource | null = null;
+
+function intToArray(i: number): Uint8Array {
+    return Uint8Array.of(
+        (i & 0x000000ff) >> 0,
+        (i & 0x0000ff00) >> 8,
+        (i & 0x00ff0000) >> 16,
+        (i & 0xff000000) >> 24
+    );
+}
 
 WebAssembly.instantiateStreaming(fetch("main.wasm"), {
     env: {
@@ -47,6 +71,16 @@ WebAssembly.instantiateStreaming(fetch("main.wasm"), {
             ctx!.fillStyle = `#${color.toString(16).padStart(6, "0")}`;
             ctx!.fillRect(x, y, w, h);
         },
+        js_draw_outline: (
+            x: number,
+            y: number,
+            w: number,
+            h: number,
+            color: number
+        ): void => {
+            ctx!.strokeStyle = `#${color.toString(16).padStart(6, "0")}`;
+            ctx!.strokeRect(x, y, w, h);
+        },
         js_fill_piece: (
             x: number,
             y: number,
@@ -72,6 +106,26 @@ WebAssembly.instantiateStreaming(fetch("main.wasm"), {
                 memory.slice(message, message + length)
             );
             console.log(msg);
+        },
+        js_canvas_hover_px: (position: number): void => {
+            const memory = new Uint8Array(
+                (w!.instance.exports.memory as WebAssembly.Memory).buffer
+            );
+
+            const x = intToArray(xCoordinate);
+            const y = intToArray(yCoordinate);
+            for (let i = 0; i < 4; i++) {
+                memory[position + i] = x[i];
+                memory[position + i + 4] = y[i];
+            }
+        },
+        js_canvas_clicked: (): number => {
+            if (clicked) {
+                clicked = false;
+                return 1;
+            }
+
+            return 0;
         },
     },
 })

@@ -79,10 +79,10 @@ const config = {
                 use: "ts-loader",
                 exclude: /node_modules/,
             },
-          {
-            test: /\.(png|svg|jpg|jpeg|gif)$/i,
-            type: "asset/resource",
-          },
+            {
+                test: /\.(png|svg|jpg|jpeg|gif)$/i,
+                type: "asset/resource",
+            },
         ],
     },
     mode: "development",
