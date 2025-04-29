@@ -7,7 +7,7 @@
         "sourceMap": true
     },
     "include": [
-        "src/**/*"
+        "src/**/*", "index.d.ts"
     ],
     "exclude": [
         "**/*.spec.ts"

@@ -65,7 +65,7 @@ const config = {
             template: "src/index.html",
         }),
         new ClangPlugin({
-            cFiles: ["src/main.c"],
+            cFiles: ["src/chess_wasm.c", "src/ds.c"],
             outputFileName: "main.wasm",
         }),
     ],
@@ -79,6 +79,10 @@ const config = {
                 use: "ts-loader",
                 exclude: /node_modules/,
             },
+          {
+            test: /\.(png|svg|jpg|jpeg|gif)$/i,
+            type: "asset/resource",
+          },
         ],
     },
     mode: "development",
