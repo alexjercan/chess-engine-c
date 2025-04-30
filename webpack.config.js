@@ -65,7 +65,7 @@ const config = {
             template: "src/index.html",
         }),
         new ClangPlugin({
-            cFiles: ["src/chess_wasm.c", "src/ds.c"],
+            cFiles: ["src/chess.c"],
             outputFileName: "main.wasm",
         }),
     ],

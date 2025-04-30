@@ -37,13 +37,78 @@ type TickFunction = (deltaTime: number) => void;
 
 let w: WebAssembly.WebAssemblyInstantiatedSource | null = null;
 
-function intToArray(i: number): Uint8Array {
-    return Uint8Array.of(
-        (i & 0x000000ff) >> 0,
-        (i & 0x0000ff00) >> 8,
-        (i & 0x00ff0000) >> 16,
-        (i & 0xff000000) >> 24
+function parseCString(addr: number): string {
+    const memory = new Uint8Array(
+        (w!.instance.exports.memory as WebAssembly.Memory).buffer
     );
+
+    let length = 0;
+    while (memory[addr + length] != 0) {
+        length += 1;
+    }
+
+    return new TextDecoder("utf-8").decode(memory.slice(addr, addr + length));
+}
+
+function dumpCString(value: string, addr: number): void {
+    const memory = new Uint8Array(
+        (w!.instance.exports.memory as WebAssembly.Memory).buffer
+    );
+
+    memory.set(new TextEncoder().encode(value), addr);
+    memory[addr + value.length] = 0;
+}
+
+function parseCInt(addr: number): number {
+    const memory = new Uint8Array(
+        (w!.instance.exports.memory as WebAssembly.Memory).buffer
+    );
+
+    return (memory[addr + 0] << 0 | memory[addr + 1] << 8 | memory[addr + 2] << 16 | memory[addr + 3] << 24);
+}
+
+function dumpCInt(value: number, addr: number): void {
+    const memory = new Uint8Array(
+        (w!.instance.exports.memory as WebAssembly.Memory).buffer
+    );
+
+    memory[addr + 0] = value & 0x000000ff;
+    memory[addr + 1] = (value & 0x0000ff00) >> 8;
+    memory[addr + 2] = (value & 0x00ff0000) >> 16;
+    memory[addr + 3] = (value & 0xff000000) >> 24;
+}
+
+function parseCArray(addr: number): number[] {
+    let array = [];
+    let number = parseCInt(addr);
+    while (number !== 0) {
+        array.push(number);
+        addr = addr + 4;
+        number = parseCInt(addr);
+    }
+
+    return array;
+}
+
+function formatString(format: string, rest: number[]): string {
+    let final = ""
+    for (let i = 0; i < format.length; i++) {
+        if (format[i] === "%") {
+            const argAddr = rest.shift();
+
+            if (format[i+1] === "s") {
+                final = final + parseCString(argAddr);
+            } else if (format[i+1] === "d") {
+                final = final + parseCInt(argAddr);
+            }
+
+            i = i + 1;
+        } else {
+            final = final + format[i];
+        }
+    }
+
+    return final;
 }
 
 WebAssembly.instantiateStreaming(fetch("main.wasm"), {
@@ -81,6 +146,23 @@ WebAssembly.instantiateStreaming(fetch("main.wasm"), {
             ctx!.strokeStyle = `#${color.toString(16).padStart(6, "0")}`;
             ctx!.strokeRect(x, y, w, h);
         },
+        js_format: (bufferAddr: number, formatAddr: number, restAddr: number): number => {
+            const format = parseCString(formatAddr);
+            const rest = parseCArray(restAddr);
+
+            let final = formatString(format, rest);
+
+            if (bufferAddr !== 0) {
+                dumpCString(final, bufferAddr);
+            }
+
+            return final.length;
+        },
+        js_log_cstr: (message: number): void => {
+            const str = parseCString(message);
+
+            console.log(str);
+        },
         js_fill_piece: (
             x: number,
             y: number,
@@ -92,32 +174,9 @@ WebAssembly.instantiateStreaming(fetch("main.wasm"), {
             image.src = PIECES[piece - 1];
             ctx.drawImage(image, x, y, w, h);
         },
-        js_log_cstr: (message: number): void => {
-            const memory = new Uint8Array(
-                (w!.instance.exports.memory as WebAssembly.Memory).buffer
-            );
-
-            let length = 0;
-            while (memory[message + length] != 0) {
-                length += 1;
-            }
-
-            const msg = new TextDecoder("utf-8").decode(
-                memory.slice(message, message + length)
-            );
-            console.log(msg);
-        },
-        js_canvas_hover_px: (position: number): void => {
-            const memory = new Uint8Array(
-                (w!.instance.exports.memory as WebAssembly.Memory).buffer
-            );
-
-            const x = intToArray(xCoordinate);
-            const y = intToArray(yCoordinate);
-            for (let i = 0; i < 4; i++) {
-                memory[position + i] = x[i];
-                memory[position + i + 4] = y[i];
-            }
+        js_canvas_hover_px: (positionAddr: number): void => {
+            dumpCInt(xCoordinate, positionAddr);
+            dumpCInt(yCoordinate, positionAddr + 4);
         },
         js_canvas_clicked: (): number => {
             if (clicked) {

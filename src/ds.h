@@ -118,7 +118,7 @@ typedef int boolean;
 #define DS_EXIT(code) exit(code)
 #else
 #define DS_EXIT(code)
-// #warning "DS_EXIT is not defined, using empty definition"
+#warning "DS_EXIT is not defined, using empty definition"
 #endif
 
 // ARENA ALLOCATOR
@@ -169,7 +169,7 @@ DSHDEF void ds_list_allocator_dump(ds_list_allocator allocator);
 #define DS_ALLOCATOR void *
 #else
 #define DS_ALLOCATOR void *
-// #error "DS_NO_STDLIB requires either DS_ARENA_ALLOCATOR_IMPLEMENTATION or DS_LIST_ALLOCATOR_IMPLEMENTATION"
+#error "DS_NO_STDLIB requires either DS_ARENA_ALLOCATOR_IMPLEMENTATION or DS_LIST_ALLOCATOR_IMPLEMENTATION"
 #endif
 
 // DS_INIT_ALLOCATOR
@@ -301,6 +301,14 @@ DSHDEF void ds_list_allocator_dump(ds_list_allocator allocator);
         }                                                                      \
         result;                                                                \
     })
+#endif
+
+// DS_ISSPACE
+#if defined(DS_ISSPACE) // ok
+#elif !defined(DS_NO_STDLIB)
+#define DS_ISSPACE(ch) isspace(ch)
+#elif defined(DS_NO_STDLIB)
+#define DS_ISSPACE(ch) (ch == ' ' || ch == '\n' || ch == '\t')
 #endif
 
 // DS_STRLEN
@@ -1252,6 +1260,7 @@ DSHDEF ds_result ds_string_builder_appendn(ds_string_builder *sb,
     return ds_dynamic_array_append_many(&sb->items, (void **)str, len);
 }
 
+#ifndef DS_NO_STDLIB
 // Append a formatted string to the string builder
 //
 // Returns 0 if the string was appended successfully.
@@ -1285,6 +1294,7 @@ defer:
     }
     return result;
 }
+#endif
 
 // Append a character to the string builder
 //
@@ -1404,7 +1414,7 @@ defer:
 
 // Trim the left side of the string slice by whitespaces
 DSHDEF void ds_string_slice_trim_left_ws(ds_string_slice *ss) {
-    while (ss->len > 0 && isspace(ss->str[0])) {
+    while (ss->len > 0 && DS_ISSPACE(ss->str[0])) {
         ss->str++;
         ss->len--;
     }
@@ -1413,7 +1423,7 @@ DSHDEF void ds_string_slice_trim_left_ws(ds_string_slice *ss) {
 
 // Trim the left side of the string slice by whitespaces
 DSHDEF void ds_string_slice_trim_right_ws(ds_string_slice *ss) {
-    while (ss->len > 0 && isspace(ss->str[ss->len - 1])) {
+    while (ss->len > 0 && DS_ISSPACE(ss->str[ss->len - 1])) {
         ss->len--;
     }
 }

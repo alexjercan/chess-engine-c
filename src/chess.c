@@ -1,7 +1,34 @@
 #define DS_NO_STDLIB
-#include "wasm.h"
+#define DS_LIST_ALLOCATOR_IMPLEMENTATION
+#define DS_DA_INIT_CAPACITY 8
+#define DS_DA_IMPLEMENTATION
+#define DS_SB_IMPLEMENTATION
+#define DS_NO_TERMINAL_COLORS
 #include "ds.h"
-#include "chess.h"
+#include "wasm.h"
+
+#define EMPTY 0
+#define BishopDark 1
+#define BishopLight 2
+#define KingDark 3
+#define KingLight 4
+#define KnightDark 5
+#define KnightLight 6
+#define PawnDark 7
+#define PawnLight 8
+#define QueenDark 9
+#define QueenLight 10
+#define RookDark 11
+#define RookLight 12
+
+#define CHESS_WIDTH 8
+#define CHESS_HEIGHT 8
+
+typedef char chess_board_t[CHESS_HEIGHT][CHESS_WIDTH];
+
+typedef struct square_t {
+    int row, col;
+} square_t;
 
 #define SQUARE_DARK 0x183318
 #define SQUARE_LIGHT 0xFFFFFF
@@ -113,6 +140,28 @@ void init(void *memory, unsigned long size) {
     js_clear_canvas();
 
     DS_INIT_ALLOCATOR(&allocator, memory, size);
+
+    ds_dynamic_array array = {0};
+    ds_dynamic_array_init_allocator(&array, sizeof(void *), &allocator);
+    char *world = DS_MALLOC(&allocator, 6);
+    DS_MEMCPY(world, "world", 5);
+    ds_dynamic_array_append(&array, &world);
+
+    int *number = DS_MALLOC(&allocator, sizeof(int));
+    *number = 69;
+    ds_dynamic_array_append(&array, &number);
+
+    int null = 0;
+    ds_dynamic_array_append(&array, &null);
+
+    int needed = js_format(NULL, "hello, %s %d", array.items);
+    char *buffer = DS_MALLOC(&allocator, needed + 1);
+    js_format(buffer, "hello, %s %d", array.items);
+    buffer[needed] = '\0';
+    js_log_cstr(buffer);
+
+    DS_FREE(&allocator, world);
+    ds_dynamic_array_free(&array);
 
     chess_reset_board(&board);
     chess_print_board(board);
