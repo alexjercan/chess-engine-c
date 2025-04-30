@@ -141,27 +141,14 @@ void init(void *memory, unsigned long size) {
 
     DS_INIT_ALLOCATOR(&allocator, memory, size);
 
-    ds_dynamic_array array = {0};
-    ds_dynamic_array_init_allocator(&array, sizeof(void *), &allocator);
-    char *world = DS_MALLOC(&allocator, 6);
-    DS_MEMCPY(world, "world", 5);
-    ds_dynamic_array_append(&array, &world);
-
-    int *number = DS_MALLOC(&allocator, sizeof(int));
-    *number = 69;
-    ds_dynamic_array_append(&array, &number);
-
-    int null = 0;
-    ds_dynamic_array_append(&array, &null);
-
-    int needed = js_format(NULL, "hello, %s %d", array.items);
-    char *buffer = DS_MALLOC(&allocator, needed + 1);
-    js_format(buffer, "hello, %s %d", array.items);
-    buffer[needed] = '\0';
+    ds_string_builder sb = {0};
+    ds_string_builder_init_allocator(&sb, &allocator);
+    ds_string_builder_append(&sb, "hello, %s %d", "world", 69);
+    char *buffer = NULL;
+    ds_string_builder_build(&sb, &buffer);
     js_log_cstr(buffer);
-
-    DS_FREE(&allocator, world);
-    ds_dynamic_array_free(&array);
+    DS_FREE(&allocator, buffer);
+    ds_string_builder_free(&sb);
 
     chess_reset_board(&board);
     chess_print_board(board);

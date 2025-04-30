@@ -78,31 +78,19 @@ function dumpCInt(value: number, addr: number): void {
     memory[addr + 3] = (value & 0xff000000) >> 24;
 }
 
-function parseCArray(addr: number): number[] {
-    let array = [];
-    let number = parseCInt(addr);
-    while (number !== 0) {
-        array.push(number);
-        addr = addr + 4;
-        number = parseCInt(addr);
-    }
-
-    return array;
-}
-
-function formatString(format: string, rest: number[]): string {
+function formatString(format: string, restAddr: number): string {
     let final = ""
+    let argAddr = restAddr;
     for (let i = 0; i < format.length; i++) {
         if (format[i] === "%") {
-            const argAddr = rest.shift();
-
             if (format[i+1] === "s") {
-                final = final + parseCString(argAddr);
+                final = final + parseCString(parseCInt(argAddr));
             } else if (format[i+1] === "d") {
                 final = final + parseCInt(argAddr);
             }
 
             i = i + 1;
+            argAddr += 4;
         } else {
             final = final + format[i];
         }
@@ -148,9 +136,8 @@ WebAssembly.instantiateStreaming(fetch("main.wasm"), {
         },
         js_format: (bufferAddr: number, formatAddr: number, restAddr: number): number => {
             const format = parseCString(formatAddr);
-            const rest = parseCArray(restAddr);
 
-            let final = formatString(format, rest);
+            let final = formatString(format, restAddr);
 
             if (bufferAddr !== 0) {
                 dumpCString(final, bufferAddr);
