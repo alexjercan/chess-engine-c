@@ -1,10 +1,4 @@
-#define DS_NO_STDLIB
-#define DS_LIST_ALLOCATOR_IMPLEMENTATION
-#define DS_DA_INIT_CAPACITY 8
-#define DS_DA_IMPLEMENTATION
-#define DS_SB_IMPLEMENTATION
-#define DS_NO_TERMINAL_COLORS
-#include "ds.h"
+#define WASM_IMPLEMENTATION
 #include "wasm.h"
 
 #define EMPTY 0

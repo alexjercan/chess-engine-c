@@ -23,7 +23,16 @@ extern int js_canvas_clicked();
 
 #endif // WASM_H
 
-#ifdef DS_SB_IMPLEMENTATION
+#ifdef WASM_IMPLEMENTATION
+
+#define DS_NO_STDLIB
+#define DS_LIST_ALLOCATOR_IMPLEMENTATION
+#define DS_DA_INIT_CAPACITY 8
+#define DS_DA_IMPLEMENTATION
+#define DS_SB_IMPLEMENTATION
+#define DS_NO_TERMINAL_COLORS
+#include "ds.h"
+
 #define ds_string_builder_append(sb, format, ...)                              \
     do {                                                                       \
         int needed = js_format(NULL, format, __VA_ARGS__);                     \
@@ -33,4 +42,5 @@ extern int js_canvas_clicked();
         ds_dynamic_array_append_many(&(sb)->items, (void **)buffer, needed);   \
         DS_FREE((sb)->items.allocator, buffer);                                \
     } while (0)
-#endif
+
+#endif // WASM_IMPLEMENTATION
