@@ -64,7 +64,12 @@ function parseCInt(addr: number): number {
         (w!.instance.exports.memory as WebAssembly.Memory).buffer
     );
 
-    return (memory[addr + 0] << 0 | memory[addr + 1] << 8 | memory[addr + 2] << 16 | memory[addr + 3] << 24);
+    return (
+        (memory[addr + 0] << 0) |
+        (memory[addr + 1] << 8) |
+        (memory[addr + 2] << 16) |
+        (memory[addr + 3] << 24)
+    );
 }
 
 function dumpCInt(value: number, addr: number): void {
@@ -83,9 +88,9 @@ function formatString(format: string, restAddr: number): string {
     let argAddr = restAddr;
     for (let i = 0; i < format.length; i++) {
         if (format[i] === "%") {
-            if (format[i+1] === "s") {
+            if (format[i + 1] === "s") {
                 final = final + parseCString(parseCInt(argAddr));
-            } else if (format[i+1] === "d") {
+            } else if (format[i + 1] === "d") {
                 final = final + parseCInt(argAddr);
             }
 
@@ -134,7 +139,11 @@ WebAssembly.instantiateStreaming(fetch("main.wasm"), {
             ctx!.strokeStyle = `#${color.toString(16).padStart(6, "0")}`;
             ctx!.strokeRect(x, y, w, h);
         },
-        js_format: (bufferAddr: number, formatAddr: number, restAddr: number): number => {
+        js_format: (
+            bufferAddr: number,
+            formatAddr: number,
+            restAddr: number
+        ): number => {
             const format = parseCString(formatAddr);
 
             let final = formatString(format, restAddr);
