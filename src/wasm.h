@@ -14,7 +14,7 @@ extern void js_fill_rect(int x, int y, int w, int h, int color);
 extern void js_draw_outline(int x, int y, int w, int h, int color);
 
 extern int js_format(char *buffer, const char *format, ...);
-extern void js_log_cstr(const char *message);
+extern void js_log_cstr(const char *format, ...);
 
 extern void js_fill_piece(int x, int y, int w, int h, char piece);
 

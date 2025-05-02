@@ -135,15 +135,6 @@ void init(void *memory, unsigned long size) {
 
     DS_INIT_ALLOCATOR(&allocator, memory, size);
 
-    ds_string_builder sb = {0};
-    ds_string_builder_init_allocator(&sb, &allocator);
-    ds_string_builder_append(&sb, "hello, %s %d", "world", 69);
-    char *buffer = NULL;
-    ds_string_builder_build(&sb, &buffer);
-    js_log_cstr(buffer);
-    DS_FREE(&allocator, buffer);
-    ds_string_builder_free(&sb);
-
     chess_reset_board(&board);
     chess_print_board(board);
 }
@@ -165,7 +156,9 @@ void tick(float deltaTime) {
     if (square_valid(square) && js_canvas_clicked()) {
         if (!square_valid(select) && board[square.row][square.col] != EMPTY) {
             select = square;
+            js_log_cstr("Selected piece at row=%d col=%d", select.row, select.col);
         } else if (square_valid(select)) {
+            js_log_cstr("Move piece to row=%d col=%d", square.row, square.col);
             chess_apply_move(&board, select, square);
             select.row = -1;
             select.col = -1;

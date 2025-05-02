@@ -72,14 +72,14 @@ function dumpCInt(value: number, addr: number): void {
         (w!.instance.exports.memory as WebAssembly.Memory).buffer
     );
 
-    memory[addr + 0] = value & 0x000000ff;
+    memory[addr + 0] = (value & 0x000000ff) >> 0;
     memory[addr + 1] = (value & 0x0000ff00) >> 8;
     memory[addr + 2] = (value & 0x00ff0000) >> 16;
     memory[addr + 3] = (value & 0xff000000) >> 24;
 }
 
 function formatString(format: string, restAddr: number): string {
-    let final = ""
+    let final = "";
     let argAddr = restAddr;
     for (let i = 0; i < format.length; i++) {
         if (format[i] === "%") {
@@ -145,10 +145,12 @@ WebAssembly.instantiateStreaming(fetch("main.wasm"), {
 
             return final.length;
         },
-        js_log_cstr: (message: number): void => {
-            const str = parseCString(message);
+        js_log_cstr: (formatAddr: number, restAddr: number): void => {
+            const format = parseCString(formatAddr);
 
-            console.log(str);
+            let final = formatString(format, restAddr);
+
+            console.log(final);
         },
         js_fill_piece: (
             x: number,
