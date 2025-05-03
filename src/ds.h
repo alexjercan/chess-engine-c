@@ -555,6 +555,7 @@ DSHDEF ds_result ds_dynamic_array_swap(ds_dynamic_array *da,
                                        unsigned long index2);
 DSHDEF ds_result ds_dynamic_array_delete(ds_dynamic_array *da,
                                          unsigned long index);
+DSHDEF void ds_dynamic_array_clear(ds_dynamic_array *da);
 DSHDEF void ds_dynamic_array_free(ds_dynamic_array *da);
 
 // STRING SLICE
@@ -1224,6 +1225,10 @@ DSHDEF ds_result ds_dynamic_array_delete(ds_dynamic_array *da,
 
 defer:
     return result;
+}
+
+DSHDEF void ds_dynamic_array_clear(ds_dynamic_array *da) {
+    da->count = 0;
 }
 
 // Free the dynamic array

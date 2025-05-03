@@ -1,4 +1,4 @@
-import { PIECES } from "./piece";
+import { ASSETS } from "./assets";
 
 const FPS: number = 60;
 const MEMORY_SIZE: number = 8192;
@@ -17,17 +17,24 @@ root.appendChild(canvas);
 
 let xCoordinate = -1;
 let yCoordinate = -1;
-let clicked = false;
+let mouseDown = false;
+let mouseUp = false;
 canvas.addEventListener("mousemove", (event) => {
     const rect = canvas.getBoundingClientRect();
     xCoordinate = event.clientX - rect.left;
     yCoordinate = event.clientY - rect.top;
 });
-canvas.addEventListener("click", (event) => {
+canvas.addEventListener("mousedown", (event) => {
     const rect = canvas.getBoundingClientRect();
     xCoordinate = event.clientX - rect.left;
     yCoordinate = event.clientY - rect.top;
-    clicked = true;
+    mouseDown = true;
+});
+canvas.addEventListener("mouseup", (event) => {
+    const rect = canvas.getBoundingClientRect();
+    xCoordinate = event.clientX - rect.left;
+    yCoordinate = event.clientY - rect.top;
+    mouseUp = true;
 });
 
 const ctx = canvas.getContext("2d");
@@ -129,6 +136,17 @@ WebAssembly.instantiateStreaming(fetch("main.wasm"), {
             ctx!.fillStyle = `#${color.toString(16).padStart(6, "0")}`;
             ctx!.fillRect(x, y, w, h);
         },
+        js_fill_circle: (
+            x: number,
+            y: number,
+            r: number,
+            color: number
+        ): void => {
+            ctx!.fillStyle = `#${color.toString(16).padStart(6, "0")}`;
+            ctx!.beginPath();
+            ctx!.arc(x, y, r, 0, Math.PI * 2);
+            ctx!.fill();
+        },
         js_draw_outline: (
             x: number,
             y: number,
@@ -138,6 +156,17 @@ WebAssembly.instantiateStreaming(fetch("main.wasm"), {
         ): void => {
             ctx!.strokeStyle = `#${color.toString(16).padStart(6, "0")}`;
             ctx!.strokeRect(x, y, w, h);
+        },
+        js_draw_texture: (
+            x: number,
+            y: number,
+            w: number,
+            h: number,
+            path: number,
+        ): void => {
+            const image = new Image();
+            image.src = ASSETS[parseCString(path)];
+            ctx.drawImage(image, x, y, w, h);
         },
         js_format: (
             bufferAddr: number,
@@ -161,24 +190,21 @@ WebAssembly.instantiateStreaming(fetch("main.wasm"), {
 
             console.log(final);
         },
-        js_fill_piece: (
-            x: number,
-            y: number,
-            w: number,
-            h: number,
-            piece: number
-        ): void => {
-            const image = new Image();
-            image.src = PIECES[piece - 1];
-            ctx.drawImage(image, x, y, w, h);
-        },
-        js_canvas_hover_px: (positionAddr: number): void => {
+        js_hover_px: (positionAddr: number): void => {
             dumpCInt(xCoordinate, positionAddr);
             dumpCInt(yCoordinate, positionAddr + 4);
         },
-        js_canvas_clicked: (): number => {
-            if (clicked) {
-                clicked = false;
+        js_mouse_down: (): number => {
+            if (mouseDown) {
+                mouseDown = false;
+                return 1;
+            }
+
+            return 0;
+        },
+        js_mouse_up: (): number => {
+            if (mouseUp) {
+                mouseUp = false;
                 return 1;
             }
 
