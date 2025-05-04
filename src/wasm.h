@@ -23,25 +23,3 @@ extern int js_mouse_down();
 extern int js_mouse_up();
 
 #endif // WASM_H
-
-#ifdef WASM_IMPLEMENTATION
-
-#define DS_NO_STDLIB
-#define DS_LIST_ALLOCATOR_IMPLEMENTATION
-#define DS_DA_INIT_CAPACITY 8
-#define DS_DA_IMPLEMENTATION
-#define DS_SB_IMPLEMENTATION
-#define DS_NO_TERMINAL_COLORS
-#include "ds.h"
-
-#define ds_string_builder_append(sb, format, ...)                              \
-    do {                                                                       \
-        int needed = js_format(NULL, format, __VA_ARGS__);                     \
-        char *buffer = DS_MALLOC((sb)->items.allocator, needed + 1);           \
-        js_format(buffer, format, __VA_ARGS__);                                \
-        buffer[needed] = '\0';                                                 \
-        ds_dynamic_array_append_many(&(sb)->items, (void **)buffer, needed);   \
-        DS_FREE((sb)->items.allocator, buffer);                                \
-    } while (0)
-
-#endif // WASM_IMPLEMENTATION

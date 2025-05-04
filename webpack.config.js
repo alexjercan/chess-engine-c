@@ -32,6 +32,10 @@ class ClangPlugin {
                     "-Wl,--export-all",
                     "-Wl,--allow-undefined",
                     "-Wl,--no-entry",
+                    "-DDS_NO_STDLIB",
+                    "-DDS_LIST_ALLOCATOR",
+                    "-DDS_NO_TERMINAL_COLORS",
+                    "-DDS_DA_INIT_CAPACITY=8",
                     `-o ${wasmFilePath}`,
                     ...cFilesPath,
                 ].join(" ");
@@ -65,7 +69,7 @@ const config = {
             template: "src/index.html",
         }),
         new ClangPlugin({
-            cFiles: ["src/chess.c"],
+            cFiles: ["src/wasm.c", "src/chess.c"],
             outputFileName: "main.wasm",
         }),
     ],

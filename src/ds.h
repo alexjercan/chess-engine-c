@@ -118,7 +118,6 @@ typedef int boolean;
 #define DS_EXIT(code) exit(code)
 #else
 #define DS_EXIT(code)
-#warning "DS_EXIT is not defined, using empty definition"
 #endif
 
 // ARENA ALLOCATOR
@@ -161,15 +160,15 @@ DSHDEF void ds_list_allocator_dump(ds_list_allocator allocator);
 // to choose between the arena allocator and the list allocator
 // based on their needs.
 #if defined(DS_ALLOCATOR) // ok
-#elif defined(DS_ARENA_ALLOCATOR_IMPLEMENTATION)
+#elif defined(DS_ARENA_ALLOCATOR)
 #define DS_ALLOCATOR ds_arena_allocator
-#elif defined(DS_LIST_ALLOCATOR_IMPLEMENTATION)
+#elif defined(DS_LIST_ALLOCATOR)
 #define DS_ALLOCATOR ds_list_allocator
 #elif !defined(DS_NO_STDLIB)
 #define DS_ALLOCATOR void *
 #else
 #define DS_ALLOCATOR void *
-#error "DS_NO_STDLIB requires either DS_ARENA_ALLOCATOR_IMPLEMENTATION or DS_LIST_ALLOCATOR_IMPLEMENTATION"
+#error "DS_NO_STDLIB requires either DS_ARENA_ALLOCATOR or DS_LIST_ALLOCATOR"
 #endif
 
 // DS_INIT_ALLOCATOR
@@ -178,9 +177,9 @@ DSHDEF void ds_list_allocator_dump(ds_list_allocator allocator);
 // based on the selected implementation. It allows the user
 // to initialize the allocator with a block of memory and a size.
 #if defined(DS_INIT_ALLOCATOR) // ok
-#elif defined(DS_ARENA_ALLOCATOR_IMPLEMENTATION)
+#elif defined(DS_ARENA_ALLOCATOR)
 #define DS_INIT_ALLOCATOR(allocator, memory, size) ds_arena_allocator_init(allocator, memory, size)
-#elif defined(DS_LIST_ALLOCATOR_IMPLEMENTATION)
+#elif defined(DS_LIST_ALLOCATOR)
 #define DS_INIT_ALLOCATOR(allocator, memory, size) ds_list_allocator_init(allocator, memory, size)
 #elif !defined(DS_NO_STDLIB)
 #define DS_INIT_ALLOCATOR(allocator, memory, size)
@@ -195,9 +194,9 @@ DSHDEF void ds_list_allocator_dump(ds_list_allocator allocator);
 // to allocate memory of a specified size
 // and returns a pointer to the allocated memory.
 #if defined(DS_MALLOC) // ok
-#elif defined(DS_ARENA_ALLOCATOR_IMPLEMENTATION)
+#elif defined(DS_ARENA_ALLOCATOR)
 #define DS_MALLOC(allocator, size) ds_arena_allocator_alloc(allocator, size)
-#elif defined(DS_LIST_ALLOCATOR_IMPLEMENTATION)
+#elif defined(DS_LIST_ALLOCATOR)
 #define DS_MALLOC(allocator, size) ds_list_allocator_alloc(allocator, size)
 #elif !defined(DS_NO_STDLIB)
 #define DS_MALLOC(allocator, size) malloc(size)
@@ -212,9 +211,9 @@ DSHDEF void ds_list_allocator_dump(ds_list_allocator allocator);
 // to free memory that was previously allocated
 // and returns a pointer to the freed memory.
 #if defined(DS_FREE) // ok
-#elif defined(DS_ARENA_ALLOCATOR_IMPLEMENTATION)
+#elif defined(DS_ARENA_ALLOCATOR)
 #define DS_FREE(allocator, ptr)
-#elif defined(DS_LIST_ALLOCATOR_IMPLEMENTATION)
+#elif defined(DS_LIST_ALLOCATOR)
 #define DS_FREE(allocator, ptr) ds_list_allocator_free(allocator, ptr)
 #elif !defined(DS_NO_STDLIB)
 #define DS_FREE(allocator, ptr) free(ptr)
@@ -227,9 +226,9 @@ DSHDEF void ds_list_allocator_dump(ds_list_allocator allocator);
 // The DS_CLEAR macro is used to clear the allocator
 // based on the selected implementation.
 #if defined(DS_CLEAR) // ok
-#elif defined(DS_ARENA_ALLOCATOR_IMPLEMENTATION)
+#elif defined(DS_ARENA_ALLOCATOR)
 #define DS_CLEAR(allocator) ds_arena_allocator_clear(allocator)
-#elif defined(DS_LIST_ALLOCATOR_IMPLEMENTATION)
+#elif defined(DS_LIST_ALLOCATOR)
 #define DS_CLEAR(allocator) ds_list_allocator_clear(allocator)
 #elif !defined(DS_NO_STDLIB)
 #define DS_CLEAR(allocator)
@@ -242,9 +241,9 @@ DSHDEF void ds_list_allocator_dump(ds_list_allocator allocator);
 // The DS_DUMP macro is used to dump the allocator
 // based on the selected implementation.
 #if defined(DS_DUMP) // ok
-#elif defined(DS_ARENA_ALLOCATOR_IMPLEMENTATION)
+#elif defined(DS_ARENA_ALLOCATOR)
 #define DS_DUMP_ALLOCATOR(allocator) ds_arena_allocator_dump(allocator)
-#elif defined(DS_LIST_ALLOCATOR_IMPLEMENTATION)
+#elif defined(DS_LIST_ALLOCATOR)
 #define DS_DUMP_ALLOCATOR(allocator) ds_list_allocator_dump(allocator)
 #elif !defined(DS_NO_STDLIB)
 #define DS_DUMP_ALLOCATOR(allocator)
@@ -384,9 +383,9 @@ static inline void *allocator_realloc(void *allocator, void *ptr, unsigned long 
 //
 // The DS_REALLOC macro is used to reallocate memory
 // using the selected allocator implementation.
-#if defined(DS_ARENA_ALLOCATOR_IMPLEMENTATION)
+#if defined(DS_ARENA_ALLOCATOR)
 #define DS_REALLOC(allocator, ptr, old_sz, new_sz) allocator_realloc(allocator, ptr, old_sz, new_sz)
-#elif defined(DS_LIST_ALLOCATOR_IMPLEMENTATION)
+#elif defined(DS_LIST_ALLOCATOR)
 #define DS_REALLOC(allocator, ptr, old_sz, new_sz) allocator_realloc(allocator, ptr, old_sz, new_sz)
 #elif !defined(DS_NO_STDLIB)
 #define DS_REALLOC(allocator, ptr, old_sz, new_sz) realloc(ptr, new_sz)
@@ -709,6 +708,7 @@ DSHDEF ds_result ds_hashmap_init(ds_hashmap *map, unsigned long capacity,
                                  int (*compare)(const void *, const void *));
 DSHDEF ds_result ds_hashmap_insert(ds_hashmap *map, ds_hashmap_kv *kv);
 DSHDEF ds_result ds_hashmap_get(ds_hashmap *map, ds_hashmap_kv *kv);
+DSHDEF ds_result ds_hashmap_get_or_default(ds_hashmap *map, ds_hashmap_kv *kv, void *default_);
 DSHDEF ds_result ds_hashmap_delete(ds_hashmap *map, const void *key);
 DSHDEF unsigned long ds_hashmap_count(ds_hashmap *map);
 DSHDEF void ds_hashmap_free(ds_hashmap *map);
@@ -2039,6 +2039,22 @@ defer:
 // Returns 0 if it found the item. Returns 1 in case of an error
 DSHDEF ds_result ds_hashmap_get(ds_hashmap *map, ds_hashmap_kv *kv) {
     ds_result result = DS_OK;
+
+    if (ds_hashmap_get_or_default(map, kv, NULL) != DS_OK) {
+        return_defer(DS_ERR);
+    }
+
+    if (kv->value == NULL) {
+        DS_LOG_ERROR("Failed to find item in hashmap");
+        return_defer(DS_ERR);
+    }
+
+defer:
+    return result;
+}
+
+DSHDEF ds_result ds_hashmap_get_or_default(ds_hashmap *map, ds_hashmap_kv *kv, void *default_) {
+    ds_result result = DS_OK;
     boolean found = false;
 
     unsigned int index = map->hash(kv->key) % map->capacity;
@@ -2058,8 +2074,7 @@ DSHDEF ds_result ds_hashmap_get(ds_hashmap *map, ds_hashmap_kv *kv) {
     }
 
     if (!found) {
-        DS_LOG_ERROR("Failed to find item in hashmap");
-        return_defer(DS_ERR);
+        kv->value = default_;
     }
 
 defer:

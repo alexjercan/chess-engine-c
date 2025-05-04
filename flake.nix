@@ -24,6 +24,7 @@
           nodejs
           clang
           lld
+          raylib
         ];
       };
   };
