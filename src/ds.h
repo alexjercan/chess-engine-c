@@ -443,7 +443,8 @@ static inline void *allocator_realloc(void *allocator, void *ptr, unsigned long 
 // DS_LOG_ERROR
 //
 // The DS_LOG_ERROR macro is used to log error messages
-#if DS_LOG_LEVEL > DS_LOG_LEVEL_ERROR
+#if defined(DS_LOG_ERROR) // OK
+#elif DS_LOG_LEVEL > DS_LOG_LEVEL_ERROR
 #define DS_LOG_ERROR(format, ...)
 #else
 #define DS_LOG_ERROR(format, ...)                                              \
@@ -455,7 +456,8 @@ static inline void *allocator_realloc(void *allocator, void *ptr, unsigned long 
 // DS_LOG_WARN
 //
 // The DS_LOG_WARN macro is used to log warning messages
-#if DS_LOG_LEVEL > DS_LOG_LEVEL_WARN
+#if defined(DS_LOG_WARN) // OK
+#elif DS_LOG_LEVEL > DS_LOG_LEVEL_WARN
 #define DS_LOG_WARN(format, ...)
 #else
 #define DS_LOG_WARN(format, ...)                                               \
@@ -481,7 +483,8 @@ static inline void *allocator_realloc(void *allocator, void *ptr, unsigned long 
 // DS_LOG_DEBUG
 //
 // The DS_LOG_DEBUG macro is used to log debug messages
-#if DS_LOG_LEVEL > DS_LOG_LEVEL_DEBUG
+#if defined(DS_LOG_DEBUG) // OK
+#elif DS_LOG_LEVEL > DS_LOG_LEVEL_DEBUG
 #define DS_LOG_DEBUG(format, ...)
 #else
 #define DS_LOG_DEBUG(format, ...)                                              \
