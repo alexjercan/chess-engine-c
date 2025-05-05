@@ -79,6 +79,8 @@
 #define NULL ((void *)0)
 #endif
 
+#define UNUSED(x) (void)(x)
+
 #ifndef DSHDEF
 #ifdef DSH_STATIC
 #define DSHDEF static
@@ -182,7 +184,12 @@ DSHDEF void ds_list_allocator_dump(ds_list_allocator allocator);
 #elif defined(DS_LIST_ALLOCATOR)
 #define DS_INIT_ALLOCATOR(allocator, memory, size) ds_list_allocator_init(allocator, memory, size)
 #elif !defined(DS_NO_STDLIB)
-#define DS_INIT_ALLOCATOR(allocator, memory, size)
+#define DS_INIT_ALLOCATOR(allocator, memory, size)                             \
+    do {                                                                       \
+        UNUSED(allocator);                                                     \
+        UNUSED(memory);                                                        \
+        UNUSED(size);                                                          \
+    } while (0)
 #else
 #define DS_INIT_ALLOCATOR(allocator, memory, size)
 #endif
@@ -461,7 +468,8 @@ static inline void *allocator_realloc(void *allocator, void *ptr, unsigned long 
 // DS_LOG_INFO
 //
 // The DS_LOG_INFO macro is used to log informational messages
-#if DS_LOG_LEVEL > DS_LOG_LEVEL_INFO
+#if defined(DS_LOG_INFO) // OK
+#elif DS_LOG_LEVEL > DS_LOG_LEVEL_INFO
 #define DS_LOG_INFO(format, ...)
 #else
 #define DS_LOG_INFO(format, ...)                                               \

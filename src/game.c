@@ -1,5 +1,12 @@
-#include "chess.h"
+#ifdef DS_NO_STDLIB
+#define DS_LIST_ALLOCATOR_IMPLEMENTATION
+#include "wasm.h"
+#else
 #include "raylib.h"
+#endif // DS_NO_STDLIB
+
+#include "chess.h"
+#include "game.h"
 
 #ifndef ASSETS_FOLDER
 #define ASSETS_FOLDER "dist/assets/"
@@ -10,23 +17,24 @@
 
 #define MAX_CAPACITY 100
 
+DS_ALLOCATOR allocator;
 ds_hashmap textures = {0};
 chess_board_t board;
 square_t selected_square = {0};
 int is_selected = 0;
 ds_dynamic_array moves = {0};
 
-unsigned long string_hash(const void *key) {
+static unsigned long string_hash(const void *key) {
     unsigned long hash = 0;
     char *name = (char *)key;
-    for (unsigned int i = 0; i < strlen(name); i++) {
+    for (unsigned int i = 0; i < DS_STRLEN(name); i++) {
         hash = 31 * hash + name[i];
     }
     return hash % MAX_CAPACITY;
 }
 
-int string_compare(const void *k1, const void *k2) {
-    return strcmp((char *)k1, (char *)k2);
+static int string_compare(const void *k1, const void *k2) {
+    return DS_STRCMP((char *)k1, (char *)k2);
 }
 
 static const char *chess_piece_texture_path(char piece) {
@@ -94,7 +102,7 @@ static Texture2D LoadTextureCached(const char *fileName) {
     return texture;
 }
 
-void chess_print_board(chess_board_t *board) {
+static void chess_print_board(chess_board_t *board) {
     int cell_width = SCREEN_WIDTH / CHESS_WIDTH;
     int cell_height = SCREEN_HEIGHT / CHESS_HEIGHT;
 
@@ -135,48 +143,44 @@ void chess_print_board(chess_board_t *board) {
     }
 }
 
-int main(void)
-{
-    int result = 0;
+void init(void *memory, unsigned long size) {
+    DS_INIT_ALLOCATOR(&allocator, memory, size);
 
-    if (ds_hashmap_init(&textures, MAX_CAPACITY, string_hash, string_compare) != DS_OK) {
-        DS_LOG_ERROR("Error initializing hashmap");
-        return_defer(-1);
+    if (ds_hashmap_init_allocator(&textures, MAX_CAPACITY, string_hash, string_compare, &allocator) != DS_OK) {
+        DS_PANIC("Error initializing hashmap");
     }
 
-    ds_dynamic_array_init(&moves, sizeof(Vector2));
+    ds_dynamic_array_init_allocator(&moves, sizeof(Vector2), &allocator);
 
     ds_string_slice fen = DS_STRING_SLICE(CHESS_START);
     chess_init_fen(&board, fen);
 
-    InitWindow(800, 800, "Chess Engine");
+    InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "Chess Engine");
+}
 
-    while (!WindowShouldClose())
-    {
-        BeginDrawing();
-            ClearBackground(RAYWHITE);
-            chess_print_board(&board);
+void tick(float deltaTime) {
+    UNUSED(deltaTime);
 
-            Vector2 mouse_px = GetMousePosition();
-            square_t square = {0};
-            px_to_square(&mouse_px, &square);
+    BeginDrawing();
 
-            if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) {
-                if (is_selected) {
-                    is_selected = 0;
-                    chess_apply_move(&board, square, selected_square, moves);
-                    ds_dynamic_array_clear(&moves);
-                } else if (chess_square_get(&board, square) != CHESS_NONE) {
-                    is_selected = 1;
-                    selected_square = square;
-                    chess_valid_moves(&board, square, &moves);
-                }
-            }
-        EndDrawing();
+    ClearBackground(RAYWHITE);
+    chess_print_board(&board);
+
+    Vector2 mouse_px = GetMousePosition();
+    square_t square = {0};
+    px_to_square(&mouse_px, &square);
+
+    if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+        if (is_selected) {
+            is_selected = 0;
+            chess_apply_move(&board, square, selected_square, moves);
+            ds_dynamic_array_clear(&moves);
+        } else if (chess_square_get(&board, square) != CHESS_NONE) {
+            is_selected = 1;
+            selected_square = square;
+            chess_valid_moves(&board, square, &moves);
+        }
     }
 
-    CloseWindow();
-
-defer:
-    return result;
+    EndDrawing();
 }

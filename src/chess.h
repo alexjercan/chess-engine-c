@@ -37,6 +37,4 @@ void chess_square_set(chess_board_t *board, square_t square, char piece);
 void chess_valid_moves(chess_board_t *board, square_t square, ds_dynamic_array *moves);
 void chess_apply_move(chess_board_t *board, square_t square, square_t selected_square, ds_dynamic_array moves);
 
-void chess_print_board(chess_board_t *board);
-
 #endif // CHESS_H

@@ -3,52 +3,34 @@ import { ASSETS } from "./assets";
 const FPS: number = 60;
 const MEMORY_SIZE: number = 8192;
 
-const CANVAS_WIDTH = 800;
-const CANVAS_HEIGHT = 800;
-
 const root = document.createElement("div");
 root.id = "root";
 document.body.appendChild(root);
-
-const canvas = document.createElement("canvas");
-canvas.width = CANVAS_WIDTH;
-canvas.height = CANVAS_HEIGHT;
-root.appendChild(canvas);
 
 let xCoordinate = -1;
 let yCoordinate = -1;
 let mouseDown = false;
 let mouseUp = false;
-canvas.addEventListener("mousemove", (event) => {
-    const rect = canvas.getBoundingClientRect();
-    xCoordinate = event.clientX - rect.left;
-    yCoordinate = event.clientY - rect.top;
-});
-canvas.addEventListener("mousedown", (event) => {
-    const rect = canvas.getBoundingClientRect();
-    xCoordinate = event.clientX - rect.left;
-    yCoordinate = event.clientY - rect.top;
-    mouseDown = true;
-});
-canvas.addEventListener("mouseup", (event) => {
-    const rect = canvas.getBoundingClientRect();
-    xCoordinate = event.clientX - rect.left;
-    yCoordinate = event.clientY - rect.top;
-    mouseUp = true;
-});
 
-const ctx = canvas.getContext("2d");
+let imageIds: string[] = [];
+
+let ctx: CanvasRenderingContext2D | null = null;
 
 type InitFunction = (memory: number, size: number) => void;
 type TickFunction = (deltaTime: number) => void;
 
 let w: WebAssembly.WebAssemblyInstantiatedSource | null = null;
 
-function parseCString(addr: number): string {
-    const memory = new Uint8Array(
-        (w!.instance.exports.memory as WebAssembly.Memory).buffer
-    );
+function parseColor(color: number): string {
+    const r = (color & 0x0000FF) >> 0;
+    const g = (color & 0x00FF00) >> 8;
+    const b = (color & 0xFF0000) >> 16;
+    const a = 0xFF;
 
+    return `rgba(${r}, ${g}, ${b}, ${a})`;
+}
+
+function parseCString(memory: Uint8Array, addr: number): string {
     let length = 0;
     while (memory[addr + length] != 0) {
         length += 1;
@@ -57,20 +39,12 @@ function parseCString(addr: number): string {
     return new TextDecoder("utf-8").decode(memory.slice(addr, addr + length));
 }
 
-function dumpCString(value: string, addr: number): void {
-    const memory = new Uint8Array(
-        (w!.instance.exports.memory as WebAssembly.Memory).buffer
-    );
-
+function dumpCString(memory: Uint8Array, value: string, addr: number): void {
     memory.set(new TextEncoder().encode(value), addr);
     memory[addr + value.length] = 0;
 }
 
-function parseCInt(addr: number): number {
-    const memory = new Uint8Array(
-        (w!.instance.exports.memory as WebAssembly.Memory).buffer
-    );
-
+function parseCInt(memory: Uint8Array, addr: number): number {
     return (
         (memory[addr + 0] << 0) |
         (memory[addr + 1] << 8) |
@@ -79,26 +53,35 @@ function parseCInt(addr: number): number {
     );
 }
 
-function dumpCInt(value: number, addr: number): void {
-    const memory = new Uint8Array(
-        (w!.instance.exports.memory as WebAssembly.Memory).buffer
-    );
-
+function dumpCInt(memory: Uint8Array, value: number, addr: number): void {
     memory[addr + 0] = (value & 0x000000ff) >> 0;
     memory[addr + 1] = (value & 0x0000ff00) >> 8;
     memory[addr + 2] = (value & 0x00ff0000) >> 16;
     memory[addr + 3] = (value & 0xff000000) >> 24;
 }
 
-function formatString(format: string, restAddr: number): string {
+function parseCFloat(memory: Uint8Array, addr: number): number {
+    const buffer = new ArrayBuffer(4);
+    const view = new Uint8Array(buffer);
+
+    for (let i = 0; i < 4; i++) {
+        view[i] = memory[addr + i];
+    }
+
+    return new Float32Array(buffer)[0];
+}
+
+function formatString(memory: Uint8Array, format: string, restAddr: number): string {
     let final = "";
     let argAddr = restAddr;
     for (let i = 0; i < format.length; i++) {
         if (format[i] === "%") {
             if (format[i + 1] === "s") {
-                final = final + parseCString(parseCInt(argAddr));
+                final = final + parseCString(memory, parseCInt(memory, argAddr));
             } else if (format[i + 1] === "d") {
-                final = final + parseCInt(argAddr);
+                final = final + parseCInt(memory, argAddr);
+            } else if (format[i + 1] === "f") {
+                final = final + parseCFloat(memory, argAddr);
             }
 
             i = i + 1;
@@ -114,87 +97,83 @@ function formatString(format: string, restAddr: number): string {
 WebAssembly.instantiateStreaming(fetch("main.wasm"), {
     env: {
         memory: new WebAssembly.Memory({ initial: MEMORY_SIZE }),
-        js_width: (): number => {
-            return CANVAS_WIDTH;
+        InitWindow(width: number, height: number, titleAddr: number): void {
+            const memory = new Uint8Array(
+                (w!.instance.exports.memory as WebAssembly.Memory).buffer
+            );
+
+            const title = parseCString(memory, titleAddr);
+            document.title = title;
+
+            root.innerHTML = "";
+
+            const canvas = document.createElement("canvas");
+            canvas.width = width;
+            canvas.height = height;
+            root.appendChild(canvas);
+
+            canvas.addEventListener("mousemove", (event) => {
+                const rect = canvas.getBoundingClientRect();
+                xCoordinate = event.clientX - rect.left;
+                yCoordinate = event.clientY - rect.top;
+            });
+            canvas.addEventListener("mousedown", (event) => {
+                const rect = canvas.getBoundingClientRect();
+                xCoordinate = event.clientX - rect.left;
+                yCoordinate = event.clientY - rect.top;
+                mouseDown = true;
+            });
+            canvas.addEventListener("mouseup", (event) => {
+                const rect = canvas.getBoundingClientRect();
+                xCoordinate = event.clientX - rect.left;
+                yCoordinate = event.clientY - rect.top;
+                mouseUp = true;
+            });
+
+            ctx = canvas.getContext("2d");
         },
-        js_height: (): number => {
-            return CANVAS_HEIGHT;
+        ClearBackground: (colorAddr: number): void => {
+            const memory = new Uint8Array(
+                (w!.instance.exports.memory as WebAssembly.Memory).buffer
+            );
+            const color = parseCInt(memory, colorAddr);
+            ctx!.fillStyle = parseColor(color);
+            ctx!.fillRect(0, 0, ctx!.canvas.width, ctx!.canvas.height);
         },
-        js_random: (a: number, b: number): number => {
-            return Math.random() * (b - a) + a;
-        },
-        js_clear_canvas: (): void => {
-            ctx!.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
-        },
-        js_fill_rect: (
-            x: number,
-            y: number,
-            w: number,
-            h: number,
-            color: number
+        BeginDrawing: (): void => {},
+        EndDrawing: (): void => {},
+        DrawRectangle: (
+            posX: number,
+            posY: number,
+            width: number,
+            height: number,
+            colorAddr: number
         ): void => {
-            ctx!.fillStyle = `#${color.toString(16).padStart(6, "0")}`;
-            ctx!.fillRect(x, y, w, h);
+            const memory = new Uint8Array(
+                (w!.instance.exports.memory as WebAssembly.Memory).buffer
+            );
+            const color = parseCInt(memory, colorAddr);
+            ctx!.fillStyle = parseColor(color);
+            ctx!.fillRect(posX, posY, width, height);
         },
-        js_fill_circle: (
-            x: number,
-            y: number,
-            r: number,
-            color: number
+        DrawCircle: (
+            centerX: number,
+            centerY: number,
+            radius: number,
+            colorAddr: number
         ): void => {
-            ctx!.fillStyle = `#${color.toString(16).padStart(6, "0")}`;
+            const memory = new Uint8Array(
+                (w!.instance.exports.memory as WebAssembly.Memory).buffer
+            );
+            const color = parseCInt(memory, colorAddr);
+            ctx!.fillStyle = parseColor(color);
             ctx!.beginPath();
-            ctx!.arc(x, y, r, 0, Math.PI * 2);
+            ctx!.arc(centerX, centerY, radius, 0, Math.PI * 2);
             ctx!.fill();
         },
-        js_draw_outline: (
-            x: number,
-            y: number,
-            w: number,
-            h: number,
-            color: number
-        ): void => {
-            ctx!.strokeStyle = `#${color.toString(16).padStart(6, "0")}`;
-            ctx!.strokeRect(x, y, w, h);
-        },
-        js_draw_texture: (
-            x: number,
-            y: number,
-            w: number,
-            h: number,
-            path: number,
-        ): void => {
-            const image = new Image();
-            image.src = ASSETS[parseCString(path)];
-            ctx.drawImage(image, x, y, w, h);
-        },
-        js_format: (
-            bufferAddr: number,
-            formatAddr: number,
-            restAddr: number
-        ): number => {
-            const format = parseCString(formatAddr);
+        IsMouseButtonPressed: (button: number): number => {
+            // TODO: actually check if the right button is pressed
 
-            let final = formatString(format, restAddr);
-
-            if (bufferAddr !== 0) {
-                dumpCString(final, bufferAddr);
-            }
-
-            return final.length;
-        },
-        js_log_cstr: (formatAddr: number, restAddr: number): void => {
-            const format = parseCString(formatAddr);
-
-            let final = formatString(format, restAddr);
-
-            console.log(final);
-        },
-        js_hover_px: (positionAddr: number): void => {
-            dumpCInt(xCoordinate, positionAddr);
-            dumpCInt(yCoordinate, positionAddr + 4);
-        },
-        js_mouse_down: (): number => {
             if (mouseDown) {
                 mouseDown = false;
                 return 1;
@@ -202,13 +181,85 @@ WebAssembly.instantiateStreaming(fetch("main.wasm"), {
 
             return 0;
         },
-        js_mouse_up: (): number => {
-            if (mouseUp) {
-                mouseUp = false;
-                return 1;
+        GetMousePositionInternal(xAddr: number, yAddr: number): void {
+            const memory = new Uint8Array(
+                (w!.instance.exports.memory as WebAssembly.Memory).buffer
+            );
+
+            dumpCInt(memory, xCoordinate, xAddr);
+            dumpCInt(memory, yCoordinate, yAddr);
+        },
+        LoadTextureInternal: (fileNameAddr: number, idAddr: number, widthAddr: number, heightAddr: number, mipmapsAddr: number, formatAddr: number): void => {
+            const memory = new Uint8Array(
+                (w!.instance.exports.memory as WebAssembly.Memory).buffer
+            );
+
+            const fileName = parseCString(memory, fileNameAddr);
+
+            const imagePath = ASSETS[fileName];
+            let index = imageIds.findIndex((path => path === imagePath));
+
+            if (index === -1) {
+                imageIds.push(imagePath);
+                index = imageIds.length - 1;
             }
 
-            return 0;
+            dumpCInt(memory, index, idAddr);
+
+            // TODO: unhardcode the image to get the width, height, mipmaps and format
+            dumpCInt(memory, 60, widthAddr);
+            dumpCInt(memory, 60, heightAddr);
+            dumpCInt(memory, 1, mipmapsAddr);
+            dumpCInt(memory, 0, formatAddr);
+        },
+        DrawTextureEx: (
+            textureAddr: number,
+            vector2Addr: number,
+            rotation: number,
+            scale: number,
+            colorAddr: number
+        ): void => {
+            const memory = new Uint8Array(
+                (w!.instance.exports.memory as WebAssembly.Memory).buffer
+            );
+
+            const id = parseCInt(memory, textureAddr);
+            const x = parseCFloat(memory, vector2Addr);
+            const y = parseCFloat(memory, vector2Addr + 4);
+
+            const image = new Image();
+            image.src = imageIds[id];
+
+            // TODO: unhardcode the image to get the width and height
+            ctx.drawImage(image, x, y, 100, 100);
+        },
+        StringFormat: (
+            bufferAddr: number,
+            formatAddr: number,
+            restAddr: number
+        ): number => {
+            const memory = new Uint8Array(
+                (w!.instance.exports.memory as WebAssembly.Memory).buffer
+            );
+
+            const format = parseCString(memory, formatAddr);
+            let final = formatString(memory, format, restAddr);
+
+            if (bufferAddr !== 0) {
+                dumpCString(memory, final, bufferAddr);
+            }
+
+            return final.length;
+        },
+        ConsoleLog: (formatAddr: number, restAddr: number): void => {
+            const memory = new Uint8Array(
+                (w!.instance.exports.memory as WebAssembly.Memory).buffer
+            );
+
+            const format = parseCString(memory, formatAddr);
+            let final = formatString(memory, format, restAddr);
+
+            console.log(final);
         },
     },
 })

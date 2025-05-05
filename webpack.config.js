@@ -36,6 +36,7 @@ class ClangPlugin {
                     "-DDS_LIST_ALLOCATOR",
                     "-DDS_NO_TERMINAL_COLORS",
                     "-DDS_DA_INIT_CAPACITY=8",
+                    "-DASSETS_FOLDER=\"\"",
                     `-o ${wasmFilePath}`,
                     ...cFilesPath,
                 ].join(" ");
@@ -69,7 +70,7 @@ const config = {
             template: "src/index.html",
         }),
         new ClangPlugin({
-            cFiles: ["src/wasm.c", "src/chess.c"],
+            cFiles: ["src/game.c", "src/chess.c"],
             outputFileName: "main.wasm",
         }),
     ],
