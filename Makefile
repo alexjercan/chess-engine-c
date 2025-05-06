@@ -11,7 +11,7 @@ $(OUT):
 	mkdir -p $(OUT)
 	cp $(SRC)/assets $(OUT)/ -r
 
-$(OUT)/main: $(OUT)/main.o $(OUT)/chess.o $(OUT)/game.o | $(OUT)
+$(OUT)/main: $(OUT)/main.o $(OUT)/chess.o $(OUT)/game.o $(OUT)/ds.o | $(OUT)
 	$(CC) $(CFLAGS) -lraylib -o $@ $^
 
 $(OUT)/main.o: $(SRC)/main.c | $(OUT)
@@ -21,6 +21,9 @@ $(OUT)/chess.o: $(SRC)/chess.c | $(OUT)
 	$(CC) $(CFLAGS) -c $< -o $@
 
 $(OUT)/game.o: $(SRC)/game.c | $(OUT)
+	$(CC) $(CFLAGS) -c $< -o $@
+
+$(OUT)/ds.o: $(SRC)/ds.c | $(OUT)
 	$(CC) $(CFLAGS) -c $< -o $@
 
 clean:

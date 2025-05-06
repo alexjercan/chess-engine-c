@@ -274,6 +274,11 @@ DSHDEF void ds_list_allocator_dump(ds_list_allocator allocator);
 #define DS_MIN(a, b) ((a) < (b) ? (a) : (b))
 #endif
 
+#if defined(DS_ABS) // ok
+#else
+#define DS_ABS(a) ((a) >= 0 ? (a) : -(a))
+#endif
+
 // DS_MEMCPY
 //
 // The DS_MEMCPY macro is used to copy memory
@@ -777,6 +782,7 @@ DSHDEF ds_result ds_argparse_add_argument(ds_argparse_parser *parser,
 DSHDEF ds_result ds_argparse_parse(ds_argparse_parser *parser, int argc,
                                    char **argv);
 DSHDEF char *ds_argparse_get_value(ds_argparse_parser *parser, char *name);
+DSHDEF char *ds_argparse_get_value_or_default(ds_argparse_parser *parser, char *name, char *default_);
 DSHDEF unsigned int ds_argparse_get_flag(ds_argparse_parser *parser,
                                          char *name);
 DSHDEF ds_result ds_argparse_get_values(ds_argparse_parser *parser, char *name,
@@ -2534,6 +2540,15 @@ DSHDEF char *ds_argparse_get_value(ds_argparse_parser *parser, char *long_name) 
     }
 
     return NULL;
+}
+
+DSHDEF char *ds_argparse_get_value_or_default(ds_argparse_parser *parser, char *name, char *default_) {
+    char *value = ds_argparse_get_value(parser, name);
+    if (value == NULL) {
+        return default_;
+    }
+
+    return value;
 }
 
 // Get the value of a positional argument
