@@ -261,6 +261,17 @@ WebAssembly.instantiateStreaming(fetch("main.wasm"), {
 
             console.log(final);
         },
+        memset: (dest: number, c: number, sizeof: number): void => {
+            console.log(dest, c, sizeof);
+
+            const memory = new Uint8Array(
+                (w!.instance.exports.memory as WebAssembly.Memory).buffer
+            );
+
+            for (let i = 0; i < sizeof; i++) {
+                memory[dest + i] = c;
+            }
+        },
     },
 })
     .then((value) => {
