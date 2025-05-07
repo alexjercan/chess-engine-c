@@ -19,11 +19,10 @@
 
 DS_ALLOCATOR allocator;
 ds_hashmap textures = {0};
-chess_board_t board = {0};
-square_t selected_square = {0};
+chess_state_t state = {0};
+chess_board_t moves = {0};
 int is_selected = 0;
-ds_dynamic_array moves = {0};
-move_t last_move = {0};
+square_t selected_square = {0};
 char current_player = CHESS_WHITE;
 
 static unsigned long string_hash(const void *key) {
@@ -104,7 +103,7 @@ static Texture2D LoadTextureCached(const char *fileName) {
     return texture;
 }
 
-static void chess_print_board(chess_board_t *board) {
+static void chess_print_board() {
     int cell_width = SCREEN_WIDTH / CHESS_WIDTH;
     int cell_height = SCREEN_HEIGHT / CHESS_HEIGHT;
 
@@ -124,9 +123,9 @@ static void chess_print_board(chess_board_t *board) {
         }
     }
 
-    if (last_move.is_move) {
-        int file = last_move.start.file;
-        int rank = last_move.start.rank;
+    if (state.last_move) {
+        int file = state.last_move_start.file;
+        int rank = state.last_move_start.rank;
 
         int file_px = file * cell_width;
         int rank_px = (CHESS_WIDTH - rank - 1) * cell_height;
@@ -140,9 +139,9 @@ static void chess_print_board(chess_board_t *board) {
         DrawRectangle(file_px, rank_px, cell_width, cell_height, color);
     }
 
-    if (last_move.is_move) {
-        int file = last_move.end.file;
-        int rank = last_move.end.rank;
+    if (state.last_move) {
+        int file = state.last_move_end.file;
+        int rank = state.last_move_end.rank;
 
         int file_px = file * cell_width;
         int rank_px = (CHESS_WIDTH - rank - 1) * cell_height;
@@ -161,7 +160,8 @@ static void chess_print_board(chess_board_t *board) {
             int file_px = file * cell_width;
             int rank_px = (CHESS_WIDTH - rank - 1) * cell_height;
 
-            char piece = chess_square_get(board, (square_t){.rank = rank, .file = file});
+            square_t square = (square_t){.rank = rank, .file = file};
+            char piece = chess_square_get(&state.board, square);
             if (piece != CHESS_NONE) {
                 Texture2D texture = LoadTextureCached(chess_piece_texture_path(piece));
                 float scale = (float)cell_width / texture.width;
@@ -170,33 +170,23 @@ static void chess_print_board(chess_board_t *board) {
         }
     }
 
-    for (unsigned int i = 0; i < moves.count; i++) {
-        move_t *move = NULL;
-        DS_UNREACHABLE(ds_dynamic_array_get_ref(&moves, i, (void **)&move));
+    for (unsigned int file = 0; file < CHESS_WIDTH; file++) {
+        for (unsigned int rank = 0; rank < CHESS_HEIGHT; rank++) {
+            square_t end = (square_t){.rank = rank, .file = file};
+            char move = chess_square_get(&moves, end);
 
-        Vector2 px = {0};
-        square_to_px(&move->end, &px);
+            if (move != CHESS_NONE) {
+                Vector2 px = {0};
+                square_to_px(&end, &px);
 
-        Color color = {.r = (SQUARE_MOVE & 0xFF0000) >> 16,
-                       .g = (SQUARE_MOVE & 0x00FF00) >> 8,
-                       .b = (SQUARE_MOVE & 0x0000FF) >> 0,
-                       .a = 0xFF};
-        DrawCircle(px.x + cell_width / 2.0f, px.y + cell_height / 2.0f, cell_width / 4.0f, color);
-    }
-
-}
-
-static int validate_selected_move(square_t square, move_t *move) {
-    for (unsigned int i = 0; i < moves.count; i++) {
-        move_t *item = NULL;
-        DS_UNREACHABLE(ds_dynamic_array_get_ref(&moves, i, (void **)&item));
-        if (item->end.rank == square.rank && item->end.file == square.file) {
-            *move = *item;
-            return 1;
+                Color color = {.r = (SQUARE_MOVE & 0xFF0000) >> 16,
+                               .g = (SQUARE_MOVE & 0x00FF00) >> 8,
+                               .b = (SQUARE_MOVE & 0x0000FF) >> 0,
+                               .a = 0xFF};
+                DrawCircle(px.x + cell_width / 2.0f, px.y + cell_height / 2.0f, cell_width / 4.0f, color);
+            }
         }
     }
-
-    return 0;
 }
 
 void init(void *memory, unsigned long size) {
@@ -206,10 +196,10 @@ void init(void *memory, unsigned long size) {
         DS_PANIC("Error initializing hashmap");
     }
 
-    ds_dynamic_array_init_allocator(&moves, sizeof(move_t), &allocator);
+    DS_MEMSET(&moves, 0, sizeof(chess_board_t));
 
     ds_string_slice fen = DS_STRING_SLICE(CHESS_START);
-    chess_init_fen(&board, fen);
+    chess_init_fen(&state, fen);
 
     InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "Chess Engine");
 }
@@ -220,26 +210,25 @@ void tick(float deltaTime) {
     BeginDrawing();
 
     ClearBackground(RAYWHITE);
-    chess_print_board(&board);
+    chess_print_board();
 
     Vector2 mouse_px = GetMousePosition();
     square_t square = {0};
     px_to_square(&mouse_px, &square);
 
     if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
-        if ((chess_square_get(&board, square) & COLOR_FLAG) == current_player) {
+        if ((chess_square_get(&state.board, square) & COLOR_FLAG) == current_player) {
             is_selected = 1;
             selected_square = square;
-            chess_valid_moves(&board, square, last_move, &moves);
+            chess_valid_moves(&state, square, &moves);
         } else {
             is_selected = 0;
-            move_t move = {0};
-            if (validate_selected_move(square, &move)) {
-                chess_apply_move(&board, move);
-                last_move = move;
+            char move = chess_square_get(&moves, square);
+            if (move != CHESS_NONE) {
+                chess_apply_move(&state, selected_square, square, move);
                 current_player = chess_flip_player(current_player);
             }
-            ds_dynamic_array_clear(&moves);
+            DS_MEMSET(&moves, 0, sizeof(chess_board_t));
         }
     }
 

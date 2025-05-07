@@ -57,12 +57,12 @@ int game() {
 }
 
 int count_positions(int depth) {
-    chess_board_t board = {0};
+    chess_state_t state = {0};
 
     ds_string_slice fen = DS_STRING_SLICE(CHESS_START);
-    chess_init_fen(&board, fen);
+    chess_init_fen(&state, fen);
 
-    int positions = chess_count_positions(&board, (move_t){0}, CHESS_WHITE, depth, NULL);
+    int positions = chess_count_positions(&state, CHESS_WHITE, depth);
     DS_LOG_INFO("Depth: %d => Positions: %d", depth, positions);
 
     return 0;

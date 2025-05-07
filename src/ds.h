@@ -279,6 +279,21 @@ DSHDEF void ds_list_allocator_dump(ds_list_allocator allocator);
 #define DS_ABS(a) ((a) >= 0 ? (a) : -(a))
 #endif
 
+// DS_MEMSET
+//
+// The DS_MEMSET macro is used to set memory to a value
+#if defined(DS_MEMSET) // ok
+#elif !defined(DS_NO_STDLIB)
+#define DS_MEMSET(dst, c, size) memset(dst, c, size)
+#else
+#define DS_MEMSET(dst, c, sz)                                                  \
+    do {                                                                       \
+        for (unsigned long i = 0; i < sz; i++) {                               \
+            ((char *)dst)[i] = c;                                              \
+        }                                                                      \
+    } while (0)
+#endif // DS_MEMCPY
+
 // DS_MEMCPY
 //
 // The DS_MEMCPY macro is used to copy memory
