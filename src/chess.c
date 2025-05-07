@@ -51,8 +51,39 @@ void chess_square_set(chess_board_t *board, square_t square, char piece) {
 }
 
 void chess_apply_move(chess_state_t *state, square_t start, square_t end, char move) {
-    if ((move & CHESS_CASTLE) != 0) {
-        DS_PANIC("Not implemented yet!");
+    char piece = chess_square_get(&state->board, start);
+    char piece_type = piece & PIECE_FLAG;
+    char piece_color = piece & COLOR_FLAG;
+
+    if (piece_type == CHESS_KING) {
+        state->king_moved |= piece_color;
+    }
+
+    if (piece_type == CHESS_ROOK) {
+        int home_rank = (piece_color == CHESS_WHITE) ? 0 : 7;
+        if (start.file == 0 && start.rank == home_rank) {
+            state->long_rook_moved |= piece_color;
+        }
+
+        if (start.file == 7 && start.rank == home_rank) {
+            state->short_rook_moved |= piece_color;
+        }
+    }
+
+    if ((move & CHESS_CASTLE_SHORT) != 0) {
+        square_t rook = MK_SQUARE(start.rank, 7);
+        char piece = chess_square_get(&state->board, rook);
+        chess_square_set(&state->board, rook, CHESS_NONE);
+        rook = MK_SQUARE(start.rank, 5);
+        chess_square_set(&state->board, rook, piece);
+    }
+
+    if ((move & CHESS_CASTLE_LONG) != 0) {
+        square_t rook = MK_SQUARE(start.rank, 0);
+        char piece = chess_square_get(&state->board, rook);
+        chess_square_set(&state->board, rook, CHESS_NONE);
+        rook = MK_SQUARE(start.rank, 3);
+        chess_square_set(&state->board, rook, piece);
     }
 
     if ((move & CHESS_ENPASSANT) != 0) {
@@ -244,6 +275,33 @@ static void chess_valid_moves_king(chess_state_t *state, square_t square, char p
             chess_square_set(moves, target, CHESS_MOVE | CHESS_CAPTURE);
         }
     }
+
+    int home_rank = (piece_color == CHESS_WHITE) ? 0 : 7;
+    square_t king_square = MK_SQUARE(home_rank, 4);
+    int is_king_home = chess_square_get(&state->board, king_square) == (CHESS_KING | piece_color);
+
+    square_t rook_short_square = MK_SQUARE(home_rank, 7);
+    int is_rook_short_home = chess_square_get(&state->board, rook_short_square) == (CHESS_ROOK | piece_color);
+    int is_short_free =
+        chess_square_get(&state->board, MK_SQUARE(home_rank, 5)) == CHESS_NONE &&
+        chess_square_get(&state->board, MK_SQUARE(home_rank, 6)) == CHESS_NONE;
+
+    int can_short = (state->king_moved & piece_color) == 0 && (state->short_rook_moved & piece_color) == 0;
+    if (is_short_free && is_king_home && is_rook_short_home && can_short) {
+        chess_square_set(moves, MK_SQUARE(home_rank, 6), CHESS_MOVE | CHESS_CASTLE_SHORT);
+    }
+
+    square_t rook_long_square = MK_SQUARE(home_rank, 0);
+    int is_rook_long_home = chess_square_get(&state->board, rook_long_square) == (CHESS_ROOK | piece_color);
+    int is_long_free =
+        chess_square_get(&state->board, MK_SQUARE(home_rank, 1)) == CHESS_NONE &&
+        chess_square_get(&state->board, MK_SQUARE(home_rank, 2)) == CHESS_NONE &&
+        chess_square_get(&state->board, MK_SQUARE(home_rank, 3)) == CHESS_NONE;
+
+    int can_long = (state->king_moved & piece_color) == 0 && (state->long_rook_moved & piece_color) == 0;
+    if (is_long_free && is_king_home && is_rook_long_home && can_long) {
+        chess_square_set(moves, MK_SQUARE(home_rank, 2), CHESS_MOVE | CHESS_CASTLE_LONG);
+    }
 }
 
 void chess_valid_moves_all(chess_state_t *state, square_t start, chess_board_t *moves) {
@@ -272,6 +330,7 @@ void chess_valid_moves_all(chess_state_t *state, square_t start, chess_board_t *
 
 void chess_valid_moves(chess_state_t *state, square_t start, chess_board_t *moves) {
     char piece = chess_square_get(&state->board, start);
+    char piece_type = piece & PIECE_FLAG;
     char piece_color = piece & COLOR_FLAG;
 
     chess_valid_moves_all(state, start, moves);
@@ -280,6 +339,23 @@ void chess_valid_moves(chess_state_t *state, square_t start, chess_board_t *move
         for (unsigned int rank_i = 0; rank_i < CHESS_HEIGHT; rank_i++) {
             square_t end = (square_t){.file = file_i, .rank = rank_i};
             char move = chess_square_get(moves, end);
+
+            if (piece_type == CHESS_KING) {
+                int home_rank = (piece_color == CHESS_WHITE) ? 0 : 7;
+                square_t king_square = MK_SQUARE(home_rank, 4);
+
+                int is_in_check = chess_controls(state, king_square, chess_flip_player(piece_color));
+                int is_short_check = chess_controls(state, MK_SQUARE(home_rank, 5), chess_flip_player(piece_color));
+                int is_long_check = chess_controls(state, MK_SQUARE(home_rank, 3), chess_flip_player(piece_color));
+
+                if ((move & CHESS_CASTLE_SHORT) != 0 && (is_in_check || is_short_check)) {
+                    chess_square_set(moves, end, CHESS_NONE);
+                }
+
+                if ((move & CHESS_CASTLE_LONG) != 0 && (is_in_check || is_long_check)) {
+                    chess_square_set(moves, end, CHESS_NONE);
+                }
+            }
 
             if (move != CHESS_NONE) {
                 chess_state_t clone = {0};
@@ -297,27 +373,40 @@ void chess_valid_moves(chess_state_t *state, square_t start, chess_board_t *move
 int chess_is_in_check(chess_state_t *state, char current) {
     char enemy = chess_flip_player(current);
 
+    square_t king_square = {0};
+    int found = 0;
+    for (unsigned int file = 0; file < CHESS_WIDTH && found == 0; file++) {
+        for (unsigned int rank = 0; rank < CHESS_HEIGHT && found == 0; rank++) {
+            square_t square = (square_t){.file = file, .rank = rank};
+            char piece = chess_square_get(&state->board, square);
+
+            if (piece == (CHESS_KING | current)) {
+                king_square = square;
+                found = 1;
+            }
+        }
+    }
+
+    if (found == 0) {
+        DS_PANIC("Playing without a king... smh");
+    }
+
+    return chess_controls(state, king_square, enemy);
+}
+
+int chess_controls(chess_state_t *state, square_t target, char current) {
     for (unsigned int file = 0; file < CHESS_WIDTH; file++) {
         for (unsigned int rank = 0; rank < CHESS_HEIGHT; rank++) {
             square_t square = (square_t){.file = file, .rank = rank};
             char piece = chess_square_get(&state->board, square);
 
-            if ((piece & COLOR_FLAG) == enemy) {
+            if ((piece & COLOR_FLAG) == current) {
                 chess_board_t moves = {0};
                 chess_valid_moves_all(state, square, &moves);
 
-                for (unsigned int file_i = 0; file_i < CHESS_WIDTH; file_i++) {
-                    for (unsigned int rank_i = 0; rank_i < CHESS_HEIGHT; rank_i++) {
-                        square_t end = (square_t){.file = file_i, .rank = rank_i};
-                        char move = chess_square_get(&moves, end);
-
-                        if (move != CHESS_NONE) {
-                            char piece = chess_square_get(&state->board, end);
-                            if ((piece & PIECE_FLAG) == CHESS_KING) {
-                                return 1;
-                            }
-                        }
-                    }
+                char move = chess_square_get(&moves, target);
+                if (move != CHESS_NONE) {
+                    return 1;
                 }
             }
         }

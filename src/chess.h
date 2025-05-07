@@ -20,6 +20,9 @@ typedef struct chess_state_t {
     int last_move; // 1 if we have a last move
     square_t last_move_start;
     square_t last_move_end;
+    char king_moved; // CHESS_WHITE if white moved CHESS_BLACK if black moved
+    char short_rook_moved;
+    char long_rook_moved;
 } chess_state_t;
 
 #define CHESS_NONE 0
@@ -27,7 +30,8 @@ typedef struct chess_state_t {
 #define CHESS_MOVE 1
 #define CHESS_CAPTURE 2
 #define CHESS_ENPASSANT 4
-#define CHESS_CASTLE 8
+#define CHESS_CASTLE_SHORT 8
+#define CHESS_CASTLE_LONG 16
 
 #define CHESS_PAWN 1
 #define CHESS_ROOK 2
@@ -57,6 +61,7 @@ void chess_apply_move(chess_state_t *state, square_t start, square_t end, char m
 void chess_valid_moves(chess_state_t *state, square_t start, chess_board_t *moves);
 
 int chess_is_in_check(chess_state_t *state, char current);
+int chess_controls(chess_state_t *state, square_t target, char current);
 
 char chess_flip_player(char current);
 int chess_count_positions(chess_state_t *state, char current, int depth);
