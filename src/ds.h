@@ -292,7 +292,7 @@ DSHDEF void ds_list_allocator_dump(ds_list_allocator allocator);
             ((char *)dst)[i] = c;                                              \
         }                                                                      \
     } while (0)
-#endif // DS_MEMCPY
+#endif // DS_MEMSET
 
 // DS_MEMCPY
 //
@@ -460,17 +460,24 @@ static inline void *allocator_realloc(void *allocator, void *ptr, unsigned long 
 #define DS_TERMINAL_RESET "\033[0m"
 #endif
 
+#ifdef DS_NO_STDIO
+// This function needs to be defined in the user code when not using stdio
+extern void ConsoleLog(const char *format, ...);
+#endif
+
 // DS_LOG_ERROR
 //
 // The DS_LOG_ERROR macro is used to log error messages
 #if defined(DS_LOG_ERROR) // OK
 #elif DS_LOG_LEVEL > DS_LOG_LEVEL_ERROR
 #define DS_LOG_ERROR(format, ...)
-#else
+#elif !defined(DS_NO_STDIO)
 #define DS_LOG_ERROR(format, ...)                                              \
     fprintf(stderr,                                                            \
             DS_TERMINAL_RED "ERROR" DS_TERMINAL_RESET ": %s:%d: " format "\n", \
             __FILE__, __LINE__, ##__VA_ARGS__)
+#else
+#define DS_LOG_ERROR(format, ...) ConsoleLog(format, ##__VA_ARGS__)
 #endif
 
 // DS_LOG_WARN
@@ -479,12 +486,14 @@ static inline void *allocator_realloc(void *allocator, void *ptr, unsigned long 
 #if defined(DS_LOG_WARN) // OK
 #elif DS_LOG_LEVEL > DS_LOG_LEVEL_WARN
 #define DS_LOG_WARN(format, ...)
-#else
+#elif !defined(DS_NO_STDIO)
 #define DS_LOG_WARN(format, ...)                                               \
     fprintf(stdout,                                                            \
             DS_TERMINAL_YELLOW "WARN" DS_TERMINAL_RESET ": %s:%d: " format     \
                                "\n",                                           \
             __FILE__, __LINE__, ##__VA_ARGS__)
+#else
+#define DS_LOG_WARN(format, ...) ConsoleLog(format, ##__VA_ARGS__)
 #endif
 
 // DS_LOG_INFO
@@ -493,11 +502,13 @@ static inline void *allocator_realloc(void *allocator, void *ptr, unsigned long 
 #if defined(DS_LOG_INFO) // OK
 #elif DS_LOG_LEVEL > DS_LOG_LEVEL_INFO
 #define DS_LOG_INFO(format, ...)
-#else
+#elif !defined(DS_NO_STDIO)
 #define DS_LOG_INFO(format, ...)                                               \
     fprintf(stdout,                                                            \
             DS_TERMINAL_BLUE "INFO" DS_TERMINAL_RESET ": %s:%d: " format "\n", \
             __FILE__, __LINE__, ##__VA_ARGS__)
+#else
+#define DS_LOG_INFO(format, ...) ConsoleLog(format, ##__VA_ARGS__)
 #endif
 
 // DS_LOG_DEBUG
@@ -506,10 +517,12 @@ static inline void *allocator_realloc(void *allocator, void *ptr, unsigned long 
 #if defined(DS_LOG_DEBUG) // OK
 #elif DS_LOG_LEVEL > DS_LOG_LEVEL_DEBUG
 #define DS_LOG_DEBUG(format, ...)
-#else
+#elif !defined(DS_NO_STDIO)
 #define DS_LOG_DEBUG(format, ...)                                              \
     fprintf(stdout, "DEBUG: %s:%d: " format "\n", __FILE__, __LINE__,          \
             ##__VA_ARGS__)
+#else
+#define DS_LOG_DEBUG(format, ...) ConsoleLog(format, ##__VA_ARGS__)
 #endif
 
 // DS_PANIC
@@ -1589,7 +1602,7 @@ DSHDEF long ds_io_read(const char *filename, char **buffer, const char *mode) {
             return_defer(-1);
         }
 
-        memset(line, 0, sizeof(line));
+        DS_MEMSET(line, 0, sizeof(line));
     } while (line_size > 0);
 
     if (ds_string_builder_build(&sb, buffer) != 0) {

@@ -78,7 +78,4 @@ extern void GetMousePositionInternal(int *x, int *y);
 extern int StringFormat(char *buffer, const char *format, ...);
 extern void ConsoleLog(const char *format, ...);
 
-#undef DS_LOG_INFO
-#define DS_LOG_INFO(format, ...) ConsoleLog(format, ##__VA_ARGS__)
-
 #endif // WASM_H

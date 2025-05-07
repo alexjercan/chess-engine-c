@@ -306,6 +306,7 @@ static void chess_valid_moves_king(chess_state_t *state, square_t square, char p
 
 void chess_valid_moves_all(chess_state_t *state, square_t start, chess_board_t *moves) {
     DS_MEMSET(moves, 0, sizeof(chess_board_t));
+
     char piece = chess_square_get(&state->board, start);
     char piece_type = piece & PIECE_FLAG;
     char piece_color = piece & COLOR_FLAG;
@@ -358,7 +359,7 @@ void chess_valid_moves(chess_state_t *state, square_t start, chess_board_t *move
             }
 
             if (move != CHESS_NONE) {
-                chess_state_t clone = {0};
+                chess_state_t clone;
                 DS_MEMCPY(&clone, state, sizeof(chess_state_t));
 
                 chess_apply_move(&clone, start, end, move);
