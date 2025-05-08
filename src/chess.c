@@ -91,10 +91,6 @@ void chess_apply_move(chess_state_t *state, square_t start, square_t end, char m
         chess_square_set(&state->board, take, CHESS_NONE);
     }
 
-    if ((move & CHESS_CAPTURE) != 0) {
-        chess_square_set(&state->board, end, CHESS_NONE);
-    }
-
     if ((move & CHESS_MOVE) != 0) {
         chess_square_set(&state->board, end, chess_square_get(&state->board, start));
         chess_square_set(&state->board, start, CHESS_NONE);
@@ -120,13 +116,13 @@ static void chess_valid_moves_pawn(chess_state_t *state, square_t start, char pi
     square_t forward_left = { .file = start.file - 1, .rank = start.rank + forward_direction };
     piece = chess_square_get(&state->board, forward_left);
     if (forward_left.file >= 0 && (piece & COLOR_FLAG) != piece_color && (piece & PIECE_FLAG) != CHESS_NONE) {
-        chess_square_set(moves, forward_left, CHESS_MOVE | CHESS_CAPTURE);
+        chess_square_set(moves, forward_left, CHESS_MOVE);
     }
 
     square_t forward_right = { .file = start.file + 1, .rank = start.rank + forward_direction };
     piece = chess_square_get(&state->board, forward_right);
     if (forward_right.file < CHESS_WIDTH && (piece & COLOR_FLAG) != piece_color && (piece & PIECE_FLAG) != CHESS_NONE) {
-        chess_square_set(moves, forward_right, CHESS_MOVE | CHESS_CAPTURE);
+        chess_square_set(moves, forward_right, CHESS_MOVE);
     }
 
     square_t forward2 = { .file = start.file, .rank = start.rank + 2 * forward_direction };
@@ -163,14 +159,9 @@ static void chess_valid_moves_knight(chess_state_t *state, square_t start, char 
         int is_free = chess_square_get(&state->board, target) == CHESS_NONE;
         int is_capture = (chess_square_get(&state->board, target) & COLOR_FLAG) != piece_color;
 
-        char move = CHESS_NONE;
-        if (is_bounded && is_free) {
-            move = CHESS_MOVE;
-        } else if (is_bounded && is_capture) {
-            move = CHESS_MOVE | CHESS_CAPTURE;
+        if (is_bounded && (is_free || is_capture)) {
+            chess_square_set(moves, target, CHESS_MOVE);
         }
-
-        chess_square_set(moves, target, move);
     }
 }
 
@@ -192,7 +183,7 @@ static void chess_valid_moves_bishop(chess_state_t *state, square_t square, char
             if (piece == CHESS_NONE) {
                 chess_square_set(moves, target, CHESS_MOVE);
             } else if ((piece & COLOR_FLAG) != piece_color) {
-                chess_square_set(moves, target, CHESS_MOVE | CHESS_CAPTURE);
+                chess_square_set(moves, target, CHESS_MOVE);
                 break;
             } else {
                 break;
@@ -219,7 +210,7 @@ static void chess_valid_moves_rook(chess_state_t *state, square_t square, char p
             if (piece == CHESS_NONE) {
                 chess_square_set(moves, target, CHESS_MOVE);
             } else if ((piece & COLOR_FLAG) != piece_color) {
-                chess_square_set(moves, target, CHESS_MOVE | CHESS_CAPTURE);
+                chess_square_set(moves, target, CHESS_MOVE);
                 break;
             } else {
                 break;
@@ -246,7 +237,7 @@ static void chess_valid_moves_queen(chess_state_t *state, square_t square, char 
             if (piece == CHESS_NONE) {
                 chess_square_set(moves, target, CHESS_MOVE);
             } else if ((piece & COLOR_FLAG) != piece_color) {
-                chess_square_set(moves, target, CHESS_MOVE | CHESS_CAPTURE);
+                chess_square_set(moves, target, CHESS_MOVE);
                 break;
             } else {
                 break;
@@ -272,7 +263,7 @@ static void chess_valid_moves_king(chess_state_t *state, square_t square, char p
         if (piece == CHESS_NONE) {
             chess_square_set(moves, target, CHESS_MOVE);
         } else if ((piece & COLOR_FLAG) != piece_color) {
-            chess_square_set(moves, target, CHESS_MOVE | CHESS_CAPTURE);
+            chess_square_set(moves, target, CHESS_MOVE);
         }
     }
 

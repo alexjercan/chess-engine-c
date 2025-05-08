@@ -28,7 +28,6 @@ typedef struct chess_state_t {
 #define CHESS_NONE 0
 
 #define CHESS_MOVE 1
-#define CHESS_CAPTURE 2
 #define CHESS_ENPASSANT 4
 #define CHESS_CASTLE_SHORT 8
 #define CHESS_CASTLE_LONG 16
