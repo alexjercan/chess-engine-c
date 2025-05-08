@@ -25,6 +25,7 @@
           clang
           lld
           raylib
+          valgrind
         ];
       };
   };

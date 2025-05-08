@@ -15,6 +15,9 @@
 #define SCREEN_WIDTH 800
 #define SCREEN_HEIGHT 800
 
+#define PROMOTION_GUI_HEIGHT 150
+#define PROMOTION_GUI_WIDTH 4 * PROMOTION_GUI_HEIGHT
+
 #define MAX_CAPACITY 100
 
 DS_ALLOCATOR allocator;
@@ -24,6 +27,9 @@ chess_board_t moves = {0};
 int is_selected = 0;
 square_t selected_square = {0};
 char current_player = CHESS_WHITE;
+int promotion_gui = 0;
+square_t promotion_square = {0};
+char options[4] = { CHESS_QUEEN, CHESS_ROOK, CHESS_BISHOP, CHESS_KNIGHT };
 
 static unsigned long string_hash(const void *key) {
     unsigned long hash = 0;
@@ -65,6 +71,7 @@ static const char *chess_piece_texture_path(char piece) {
         case CHESS_KING | CHESS_BLACK:
             return ASSETS_FOLDER "Chess_kdt60.png";
         default:
+            DS_PANIC("Chess piece is not supported %d", piece);
             return NULL;
     }
 }
@@ -83,6 +90,17 @@ static void square_to_px(square_t *square, Vector2 *px) {
 
     px->x = square->file * cell_width;
     px->y = (CHESS_WIDTH - square->rank - 1) * cell_height;
+}
+
+static int px_to_option(Vector2 *px) {
+    int col_px = SCREEN_WIDTH / 2 - PROMOTION_GUI_WIDTH / 2;
+    int row_px = SCREEN_HEIGHT / 2 - PROMOTION_GUI_HEIGHT / 2;
+
+    if (px->x < col_px || px->x > col_px + PROMOTION_GUI_WIDTH || px->y < row_px || px->y > row_px + PROMOTION_GUI_HEIGHT) {
+        return -1;
+    } else {
+        return (px->x - col_px) / PROMOTION_GUI_HEIGHT;
+    }
 }
 
 static Texture2D LoadTextureCached(const char *fileName) {
@@ -189,6 +207,32 @@ static void chess_print_board() {
     }
 }
 
+static void chess_print_promotion() {
+    int col_px = SCREEN_WIDTH / 2 - PROMOTION_GUI_WIDTH / 2;
+    int row_px = SCREEN_HEIGHT / 2 - PROMOTION_GUI_HEIGHT / 2;
+
+    int is_light_square = (promotion_square.file + promotion_square.rank) % 2 == 1;
+    int square_color = is_light_square ? SQUARE_LIGHT : SQUARE_DARK;
+    Color color = {.r = (square_color & 0xFF0000) >> 16,
+                   .g = (square_color & 0x00FF00) >> 8,
+                   .b = (square_color & 0x0000FF) >> 0,
+                   .a = 0xFF};
+
+    DrawRectangle(col_px, row_px, PROMOTION_GUI_WIDTH, PROMOTION_GUI_HEIGHT, color);
+
+    for (unsigned int i = 0; i < 4; i++) {
+        char option = options[i];
+        char piece = option | current_player;
+
+        int col_px = SCREEN_WIDTH / 2 - PROMOTION_GUI_WIDTH / 2 + i * PROMOTION_GUI_HEIGHT;
+        int row_px = SCREEN_HEIGHT / 2 - PROMOTION_GUI_HEIGHT / 2;
+
+        Texture2D texture = LoadTextureCached(chess_piece_texture_path(piece));
+        float scale = (float)PROMOTION_GUI_HEIGHT / texture.width;
+        DrawTextureEx(texture, (Vector2){.x = col_px, .y = row_px}, 0, scale, WHITE);
+    }
+}
+
 void init(void *memory, unsigned long size) {
     DS_INIT_ALLOCATOR(&allocator, memory, size);
 
@@ -211,24 +255,44 @@ void tick(float deltaTime) {
 
     ClearBackground(RAYWHITE);
     chess_print_board();
-
-    Vector2 mouse_px = GetMousePosition();
-    square_t square = {0};
-    px_to_square(&mouse_px, &square);
+    if (promotion_gui == 1) {
+        chess_print_promotion();
+    }
 
     if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
-        if ((chess_square_get(&state.board, square) & COLOR_FLAG) == current_player) {
-            is_selected = 1;
-            selected_square = square;
-            chess_valid_moves(&state, square, &moves);
-        } else {
-            is_selected = 0;
-            char move = chess_square_get(&moves, square);
-            if (move != CHESS_NONE) {
-                chess_apply_move(&state, selected_square, square, move);
-                current_player = chess_flip_player(current_player);
+        Vector2 mouse_px = GetMousePosition();
+
+        if (promotion_gui == 0) {
+            square_t square = {0};
+            px_to_square(&mouse_px, &square);
+
+            if ((chess_square_get(&state.board, square) & COLOR_FLAG) == current_player) {
+                is_selected = 1;
+                selected_square = square;
+                chess_valid_moves(&state, square, &moves);
+            } else {
+                is_selected = 0;
+                char move = chess_square_get(&moves, square);
+                if (move != CHESS_NONE) {
+                    chess_apply_move(&state, selected_square, square, move);
+                    if ((move & CHESS_PROMOTE) != 0) {
+                        promotion_gui = 1;
+                        promotion_square = square;
+                    } else {
+                        current_player = chess_flip_player(current_player);
+                    }
+                }
+                DS_MEMSET(&moves, 0, sizeof(chess_board_t));
             }
-            DS_MEMSET(&moves, 0, sizeof(chess_board_t));
+        } else {
+            int option_index = px_to_option(&mouse_px);
+            if (option_index >= 0) {
+                char option = options[option_index];
+                char piece = option | current_player;
+                chess_square_set(&state.board, promotion_square, piece);
+                current_player = chess_flip_player(current_player);
+                promotion_gui = 0;
+            }
         }
     }
 

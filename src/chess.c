@@ -107,22 +107,38 @@ static void chess_valid_moves_pawn(chess_state_t *state, square_t start, char pi
     char piece = 0;
     int forward_direction = (piece_color == CHESS_WHITE) ? 1 : -1;
     int second_rank = (piece_color == CHESS_WHITE) ? 1 : 6;
+    int promotion_rank = (piece_color == CHESS_WHITE) ? 7 : 0;
 
     square_t forward = { .file = start.file, .rank = start.rank + forward_direction };
     if (chess_square_get(&state->board, forward) == CHESS_NONE) {
-        chess_square_set(moves, forward, CHESS_MOVE);
+        char move = CHESS_MOVE;
+        if (forward.rank == promotion_rank) {
+            move |= CHESS_PROMOTE;
+        }
+
+        chess_square_set(moves, forward, move);
     }
 
     square_t forward_left = { .file = start.file - 1, .rank = start.rank + forward_direction };
     piece = chess_square_get(&state->board, forward_left);
     if (forward_left.file >= 0 && (piece & COLOR_FLAG) != piece_color && (piece & PIECE_FLAG) != CHESS_NONE) {
-        chess_square_set(moves, forward_left, CHESS_MOVE);
+        char move = CHESS_MOVE | CHESS_CAPTURE;
+        if (forward_left.rank == promotion_rank) {
+            move |= CHESS_PROMOTE;
+        }
+
+        chess_square_set(moves, forward_left, move);
     }
 
     square_t forward_right = { .file = start.file + 1, .rank = start.rank + forward_direction };
     piece = chess_square_get(&state->board, forward_right);
     if (forward_right.file < CHESS_WIDTH && (piece & COLOR_FLAG) != piece_color && (piece & PIECE_FLAG) != CHESS_NONE) {
-        chess_square_set(moves, forward_right, CHESS_MOVE);
+        char move = CHESS_MOVE | CHESS_CAPTURE;
+        if (forward_right.rank == promotion_rank) {
+            move |= CHESS_PROMOTE;
+        }
+
+        chess_square_set(moves, forward_right, move);
     }
 
     square_t forward2 = { .file = start.file, .rank = start.rank + 2 * forward_direction };
@@ -159,8 +175,10 @@ static void chess_valid_moves_knight(chess_state_t *state, square_t start, char 
         int is_free = chess_square_get(&state->board, target) == CHESS_NONE;
         int is_capture = (chess_square_get(&state->board, target) & COLOR_FLAG) != piece_color;
 
-        if (is_bounded && (is_free || is_capture)) {
+        if (is_bounded && is_free) {
             chess_square_set(moves, target, CHESS_MOVE);
+        } else if (is_bounded && is_capture) {
+            chess_square_set(moves, target, CHESS_MOVE | CHESS_CAPTURE);
         }
     }
 }
@@ -183,7 +201,7 @@ static void chess_valid_moves_bishop(chess_state_t *state, square_t square, char
             if (piece == CHESS_NONE) {
                 chess_square_set(moves, target, CHESS_MOVE);
             } else if ((piece & COLOR_FLAG) != piece_color) {
-                chess_square_set(moves, target, CHESS_MOVE);
+                chess_square_set(moves, target, CHESS_MOVE | CHESS_CAPTURE);
                 break;
             } else {
                 break;
@@ -210,7 +228,7 @@ static void chess_valid_moves_rook(chess_state_t *state, square_t square, char p
             if (piece == CHESS_NONE) {
                 chess_square_set(moves, target, CHESS_MOVE);
             } else if ((piece & COLOR_FLAG) != piece_color) {
-                chess_square_set(moves, target, CHESS_MOVE);
+                chess_square_set(moves, target, CHESS_MOVE | CHESS_CAPTURE);
                 break;
             } else {
                 break;
@@ -237,7 +255,7 @@ static void chess_valid_moves_queen(chess_state_t *state, square_t square, char 
             if (piece == CHESS_NONE) {
                 chess_square_set(moves, target, CHESS_MOVE);
             } else if ((piece & COLOR_FLAG) != piece_color) {
-                chess_square_set(moves, target, CHESS_MOVE);
+                chess_square_set(moves, target, CHESS_MOVE | CHESS_CAPTURE);
                 break;
             } else {
                 break;
@@ -263,7 +281,7 @@ static void chess_valid_moves_king(chess_state_t *state, square_t square, char p
         if (piece == CHESS_NONE) {
             chess_square_set(moves, target, CHESS_MOVE);
         } else if ((piece & COLOR_FLAG) != piece_color) {
-            chess_square_set(moves, target, CHESS_MOVE);
+            chess_square_set(moves, target, CHESS_MOVE | CHESS_CAPTURE);
         }
     }
 
@@ -415,12 +433,12 @@ char chess_flip_player(char current) {
     return CHESS_BLACK;
 }
 
-int chess_count_positions(chess_state_t *state, char current, int depth) {
+void chess_count_positions(chess_state_t *state, char current, int depth, perft_t *perft) {
     if (depth == 0) {
-        return 1;
+        perft->nodes += 1;
+        return;
     }
 
-    int count = 0;
     for (unsigned int file = 0; file < CHESS_WIDTH; file++) {
         for (unsigned int rank = 0; rank < CHESS_HEIGHT; rank++) {
             square_t start = (square_t){.file = file, .rank = rank};
@@ -435,18 +453,53 @@ int chess_count_positions(chess_state_t *state, char current, int depth) {
                         square_t end = (square_t){.file = file_i, .rank = rank_i};
                         char move = chess_square_get(&moves, end);
 
+                        if ((move & CHESS_ENPASSANT) != 0) {
+                            perft->enp += 1;
+                        }
+
+                        if ((move & CHESS_CASTLE_SHORT) != 0 || (move & CHESS_CASTLE_LONG) != 0) {
+                            perft->castles += 1;
+                        }
+
+                        if ((move & CHESS_PROMOTE) != 0) {
+                            perft->promote += 1;
+                        }
+
+                        if ((move & CHESS_CAPTURE) != 0) {
+                            perft->captures += 1;
+                        }
+
                         if (move != CHESS_NONE) {
+
                             chess_state_t clone = {0};
                             DS_MEMCPY(&clone, state, sizeof(chess_state_t));
 
                             chess_apply_move(&clone, start, end, move);
-                            count += chess_count_positions(&clone, chess_flip_player(current), depth - 1);
+                            if ((move & CHESS_PROMOTE) != 0) {
+                                chess_state_t clone2 = {0};
+
+                                DS_MEMCPY(&clone2, &clone, sizeof(chess_state_t));
+                                chess_square_set(&clone2.board, end, CHESS_QUEEN | current);
+                                chess_count_positions(&clone2, chess_flip_player(current), depth - 1, perft);
+
+                                DS_MEMCPY(&clone2, &clone, sizeof(chess_state_t));
+                                chess_square_set(&clone2.board, end, CHESS_BISHOP | current);
+                                chess_count_positions(&clone2, chess_flip_player(current), depth - 1, perft);
+
+                                DS_MEMCPY(&clone2, &clone, sizeof(chess_state_t));
+                                chess_square_set(&clone2.board, end, CHESS_KNIGHT | current);
+                                chess_count_positions(&clone2, chess_flip_player(current), depth - 1, perft);
+
+                                DS_MEMCPY(&clone2, &clone, sizeof(chess_state_t));
+                                chess_square_set(&clone2.board, end, CHESS_ROOK | current);
+                                chess_count_positions(&clone2, chess_flip_player(current), depth - 1, perft);
+                            } else {
+                                chess_count_positions(&clone, chess_flip_player(current), depth - 1, perft);
+                            }
                         }
                     }
                 }
             }
         }
     }
-
-    return count;
 }

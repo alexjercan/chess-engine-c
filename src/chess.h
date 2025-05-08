@@ -28,9 +28,11 @@ typedef struct chess_state_t {
 #define CHESS_NONE 0
 
 #define CHESS_MOVE 1
+#define CHESS_PROMOTE 2
 #define CHESS_ENPASSANT 4
 #define CHESS_CASTLE_SHORT 8
 #define CHESS_CASTLE_LONG 16
+#define CHESS_CAPTURE 32
 
 #define CHESS_PAWN 1
 #define CHESS_ROOK 2
@@ -50,10 +52,18 @@ typedef struct chess_state_t {
 #define SQUARE_LIGHT_MOVE 0xC4A382
 #define SQUARE_MOVE 0xFF0000
 
+typedef struct perft_t {
+    int nodes;
+    int captures;
+    int enp;
+    int castles;
+    int promote;
+} perft_t;
+
 char chess_square_get(chess_board_t *board, square_t square);
 void chess_square_set(chess_board_t *board, square_t square, char piece);
 
-#define CHESS_START "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
+#define CHESS_START "r4rk1/1pp1qppp/p1np1n2/2b1p1B1/2B1P1b1/P1NP1N2/1PP1QPPP/R4RK1 w - - 0 10 "
 
 void chess_init_fen(chess_state_t *state, ds_string_slice fen);
 void chess_apply_move(chess_state_t *state, square_t start, square_t end, char move);
@@ -63,6 +73,6 @@ int chess_is_in_check(chess_state_t *state, char current);
 int chess_controls(chess_state_t *state, square_t target, char current);
 
 char chess_flip_player(char current);
-int chess_count_positions(chess_state_t *state, char current, int depth);
+void chess_count_positions(chess_state_t *state, char current, int depth, perft_t *perft);
 
 #endif // CHESS_H
