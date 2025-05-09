@@ -75,6 +75,9 @@ extern void GetMousePositionInternal(int *x, int *y);
         CLITERAL(Vector2){ __x, __y };                                         \
     })
 
+extern int MeasureText(const char *text, int fontSize);
+extern void DrawText(const char *text, int posX, int posY, int fontSize, Color color);
+
 extern int StringFormat(char *buffer, const char *format, ...);
 extern void ConsoleLog(const char *format, ...);
 

@@ -30,6 +30,7 @@ char current_player = CHESS_WHITE;
 int promotion_gui = 0;
 square_t promotion_square = {0};
 char options[4] = { CHESS_QUEEN, CHESS_ROOK, CHESS_BISHOP, CHESS_KNIGHT };
+int checkmate_gui = 0;
 
 static unsigned long string_hash(const void *key) {
     unsigned long hash = 0;
@@ -125,6 +126,7 @@ static void chess_print_board() {
     int cell_width = SCREEN_WIDTH / CHESS_WIDTH;
     int cell_height = SCREEN_HEIGHT / CHESS_HEIGHT;
 
+    square_t king_square = {0};
     for (unsigned int file = 0; file < CHESS_WIDTH; file++) {
         for (unsigned int rank = 0; rank < CHESS_HEIGHT; rank++) {
             int is_light_square = (file + rank) % 2 == 1;
@@ -138,7 +140,31 @@ static void chess_print_board() {
             int rank_px = (CHESS_WIDTH - rank - 1) * cell_height;
 
             DrawRectangle(file_px, rank_px, cell_width, cell_height, color);
+
+            square_t square = (square_t){.rank = rank, .file = file};
+            char piece = chess_square_get(&state.board, square);
+            char piece_color = piece & COLOR_FLAG;
+            char piece_type = piece & PIECE_FLAG;
+            if (piece_color == current_player && piece_type == CHESS_KING) {
+                king_square = square;
+            }
         }
+    }
+
+    if (chess_is_in_check(&state, current_player)) {
+        int file = king_square.file;
+        int rank = king_square.rank;
+
+        int square_color = SQUARE_MOVE;
+        Color color = {.r = (square_color & 0xFF0000) >> 16,
+                       .g = (square_color & 0x00FF00) >> 8,
+                       .b = (square_color & 0x0000FF) >> 0,
+                       .a = 0xFF};
+
+        int file_px = file * cell_width;
+        int rank_px = (CHESS_WIDTH - rank - 1) * cell_height;
+
+        DrawRectangle(file_px, rank_px, cell_width, cell_height, color);
     }
 
     if (state.last_move) {
@@ -233,6 +259,26 @@ static void chess_print_promotion() {
     }
 }
 
+static void chess_print_checkmate() {
+    int col_px = SCREEN_WIDTH / 2 - PROMOTION_GUI_WIDTH / 2;
+    int row_px = SCREEN_HEIGHT / 2 - PROMOTION_GUI_HEIGHT / 2;
+
+    Color color = {.r = (0xFF0000 & 0xFF0000) >> 16,
+                   .g = (0xFF0000 & 0x00FF00) >> 8,
+                   .b = (0xFF0000 & 0x0000FF) >> 0,
+                   .a = 0xFF};
+
+    DrawRectangle(col_px, row_px, PROMOTION_GUI_WIDTH, PROMOTION_GUI_HEIGHT, color);
+
+    const char *text = "Checkmate!";
+    int text_width = MeasureText(text, 20);
+    int text_height = 20;
+    int text_x = col_px + PROMOTION_GUI_WIDTH / 2 - text_width / 2;
+    int text_y = row_px + PROMOTION_GUI_HEIGHT / 2 - text_height / 2;
+
+    DrawText(text, text_x, text_y, 20, WHITE);
+}
+
 void init(void *memory, unsigned long size) {
     DS_INIT_ALLOCATOR(&allocator, memory, size);
 
@@ -258,11 +304,14 @@ void tick(float deltaTime) {
     if (promotion_gui == 1) {
         chess_print_promotion();
     }
+    if (checkmate_gui == 1) {
+        chess_print_checkmate();
+    }
 
     if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
         Vector2 mouse_px = GetMousePosition();
 
-        if (promotion_gui == 0) {
+        if (promotion_gui == 0 && checkmate_gui == 0) {
             square_t square = {0};
             px_to_square(&mouse_px, &square);
 
@@ -280,17 +329,23 @@ void tick(float deltaTime) {
                         promotion_square = square;
                     } else {
                         current_player = chess_flip_player(current_player);
+                        if (chess_is_checkmate(&state, current_player)) {
+                            checkmate_gui = 1;
+                        }
                     }
                 }
                 DS_MEMSET(&moves, 0, sizeof(chess_board_t));
             }
-        } else {
+        } else if (promotion_gui == 1) {
             int option_index = px_to_option(&mouse_px);
             if (option_index >= 0) {
                 char option = options[option_index];
                 char piece = option | current_player;
                 chess_square_set(&state.board, promotion_square, piece);
                 current_player = chess_flip_player(current_player);
+                if (chess_is_checkmate(&state, current_player)) {
+                    checkmate_gui = 1;
+                }
                 promotion_gui = 0;
             }
         }

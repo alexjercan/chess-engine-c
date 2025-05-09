@@ -404,6 +404,40 @@ int chess_is_in_check(chess_state_t *state, char current) {
     return chess_controls(state, king_square, enemy);
 }
 
+int chess_is_checkmate(chess_state_t *state, char current) {
+    int check = chess_is_in_check(state, current);
+
+    int can_move = 0;
+    for (unsigned int file = 0; file < CHESS_WIDTH && can_move == 0; file++) {
+        for (unsigned int rank = 0; rank < CHESS_HEIGHT && can_move == 0; rank++) {
+            square_t start = (square_t){.file = file, .rank = rank};
+            char piece = chess_square_get(&state->board, start);
+
+            if ((piece & COLOR_FLAG) == current) {
+                chess_board_t moves = {0};
+                chess_valid_moves(state, start, &moves);
+
+                for (unsigned int file_i = 0; file_i < CHESS_WIDTH && can_move == 0; file_i++) {
+                    for (unsigned int rank_i = 0; rank_i < CHESS_HEIGHT && can_move == 0; rank_i++) {
+                        square_t end = (square_t){.file = file_i, .rank = rank_i};
+                        char move = chess_square_get(&moves, end);
+
+                        if (move != CHESS_NONE) {
+                            can_move = 1;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    if (check && can_move == 0) {
+        return 1;
+    }
+
+    return 0;
+}
+
 int chess_controls(chess_state_t *state, square_t target, char current) {
     for (unsigned int file = 0; file < CHESS_WIDTH; file++) {
         for (unsigned int rank = 0; rank < CHESS_HEIGHT; rank++) {
@@ -434,10 +468,22 @@ char chess_flip_player(char current) {
 }
 
 void chess_count_positions(chess_state_t *state, char current, int depth, perft_t *perft) {
+    if (chess_is_in_check(state, current)) {
+        perft->checks += 1;
+    }
+
+    if (chess_is_checkmate(state, current)) {
+        perft->nodes += 1;
+        perft->checkmates += 1;
+        return;
+    }
+
     if (depth == 0) {
         perft->nodes += 1;
         return;
     }
+
+    char enemy = chess_flip_player(current);
 
     for (unsigned int file = 0; file < CHESS_WIDTH; file++) {
         for (unsigned int rank = 0; rank < CHESS_HEIGHT; rank++) {
@@ -470,7 +516,6 @@ void chess_count_positions(chess_state_t *state, char current, int depth, perft_
                         }
 
                         if (move != CHESS_NONE) {
-
                             chess_state_t clone = {0};
                             DS_MEMCPY(&clone, state, sizeof(chess_state_t));
 
@@ -480,21 +525,21 @@ void chess_count_positions(chess_state_t *state, char current, int depth, perft_
 
                                 DS_MEMCPY(&clone2, &clone, sizeof(chess_state_t));
                                 chess_square_set(&clone2.board, end, CHESS_QUEEN | current);
-                                chess_count_positions(&clone2, chess_flip_player(current), depth - 1, perft);
+                                chess_count_positions(&clone2, enemy, depth - 1, perft);
 
                                 DS_MEMCPY(&clone2, &clone, sizeof(chess_state_t));
                                 chess_square_set(&clone2.board, end, CHESS_BISHOP | current);
-                                chess_count_positions(&clone2, chess_flip_player(current), depth - 1, perft);
+                                chess_count_positions(&clone2, enemy, depth - 1, perft);
 
                                 DS_MEMCPY(&clone2, &clone, sizeof(chess_state_t));
                                 chess_square_set(&clone2.board, end, CHESS_KNIGHT | current);
-                                chess_count_positions(&clone2, chess_flip_player(current), depth - 1, perft);
+                                chess_count_positions(&clone2, enemy, depth - 1, perft);
 
                                 DS_MEMCPY(&clone2, &clone, sizeof(chess_state_t));
                                 chess_square_set(&clone2.board, end, CHESS_ROOK | current);
-                                chess_count_positions(&clone2, chess_flip_player(current), depth - 1, perft);
+                                chess_count_positions(&clone2, enemy, depth - 1, perft);
                             } else {
-                                chess_count_positions(&clone, chess_flip_player(current), depth - 1, perft);
+                                chess_count_positions(&clone, enemy, depth - 1, perft);
                             }
                         }
                     }

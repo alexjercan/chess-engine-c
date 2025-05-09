@@ -233,6 +233,31 @@ WebAssembly.instantiateStreaming(fetch("main.wasm"), {
             // TODO: unhardcode the image to get the width and height
             ctx.drawImage(image, x, y, 100, 100);
         },
+        MeasureText: (textAddr: number, fontSize: number): number => {
+            const memory = new Uint8Array(
+                (w!.instance.exports.memory as WebAssembly.Memory).buffer
+            );
+            const text = parseCString(memory, textAddr);
+            ctx!.font = `${fontSize}px sans-serif`;
+            const metrics = ctx!.measureText(text);
+            return metrics.width;
+        },
+        DrawText: (
+            textAddr: number,
+            posX: number,
+            posY: number,
+            fontSize: number,
+            colorAddr: number
+        ): void => {
+            const memory = new Uint8Array(
+                (w!.instance.exports.memory as WebAssembly.Memory).buffer
+            );
+            const text = parseCString(memory, textAddr);
+            const color = parseCInt(memory, colorAddr);
+            ctx!.fillStyle = parseColor(color);
+            ctx!.font = `${fontSize}px sans-serif`;
+            ctx!.fillText(text, posX, posY);
+        },
         StringFormat: (
             bufferAddr: number,
             formatAddr: number,

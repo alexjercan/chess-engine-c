@@ -58,18 +58,21 @@ typedef struct perft_t {
     int enp;
     int castles;
     int promote;
+    int checks;
+    int checkmates;
 } perft_t;
 
 char chess_square_get(chess_board_t *board, square_t square);
 void chess_square_set(chess_board_t *board, square_t square, char piece);
 
-#define CHESS_START "r4rk1/1pp1qppp/p1np1n2/2b1p1B1/2B1P1b1/P1NP1N2/1PP1QPPP/R4RK1 w - - 0 10 "
+#define CHESS_START "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1 "
 
 void chess_init_fen(chess_state_t *state, ds_string_slice fen);
 void chess_apply_move(chess_state_t *state, square_t start, square_t end, char move);
 void chess_valid_moves(chess_state_t *state, square_t start, chess_board_t *moves);
 
 int chess_is_in_check(chess_state_t *state, char current);
+int chess_is_checkmate(chess_state_t *state, char current);
 int chess_controls(chess_state_t *state, square_t target, char current);
 
 char chess_flip_player(char current);
