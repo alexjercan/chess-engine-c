@@ -23,6 +23,8 @@ typedef struct chess_state_t {
     char king_moved; // CHESS_WHITE if white moved CHESS_BLACK if black moved
     char short_rook_moved;
     char long_rook_moved;
+
+    char current_player;
 } chess_state_t;
 
 #define CHESS_NONE 0

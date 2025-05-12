@@ -34,6 +34,8 @@ void chess_init_fen(chess_state_t *state, ds_string_slice fen) {
             file++;
         }
     }
+
+    state->current_player = CHESS_WHITE; // TODO: hardcodede to white
 }
 
 char chess_square_get(chess_board_t *board, square_t square) {
