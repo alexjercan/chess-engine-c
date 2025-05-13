@@ -39,9 +39,10 @@ const char *chess_piece_texture_path(char piece) {
     }
 }
 
-Texture2D LoadTextureCachedMap(ds_hashmap *textures, const char *fileName) {
+static Texture2D LoadTextureCachedMap(ds_hashmap *textures, char piece) {
     Texture2D texture = {0};
-    ds_hashmap_kv kv = { .key = (void *)fileName, .value = NULL };
+    long key = piece;
+    ds_hashmap_kv kv = { .key = (void *)key, .value = NULL };
     DS_UNREACHABLE(ds_hashmap_get_or_default(textures, &kv, NULL));
 
     if (kv.value != NULL) {
@@ -49,7 +50,7 @@ Texture2D LoadTextureCachedMap(ds_hashmap *textures, const char *fileName) {
         return texture;
     }
 
-    texture = LoadTexture(fileName);
+    texture = LoadTexture(chess_piece_texture_path(piece));
     kv.value = DS_MALLOC(textures->allocator, sizeof(Texture2D));
     DS_MEMCPY(kv.value, &texture, sizeof(Texture2D));
     ds_hashmap_insert(textures, &kv);
@@ -57,27 +58,22 @@ Texture2D LoadTextureCachedMap(ds_hashmap *textures, const char *fileName) {
     return texture;
 }
 
-Texture2D LoadTextureCached(const char *fileName) {
+Texture2D LoadTextureCachedPiece(char piece) {
     if (textures.capacity == 0) {
-        if (ds_hashmap_init_allocator(&textures, MAX_CAPACITY, string_hash, string_compare, &allocator) != DS_OK) {
+        if (ds_hashmap_init_allocator(&textures, MAX_CAPACITY, long_hash, long_compare, &allocator) != DS_OK) {
             DS_PANIC("Error initializing hashmap");
         }
     }
 
-    return LoadTextureCachedMap(&textures, fileName);
+    return LoadTextureCachedMap(&textures, piece);
 }
 
-unsigned long string_hash(const void *key) {
-    unsigned long hash = 0;
-    char *name = (char *)key;
-    for (unsigned int i = 0; i < DS_STRLEN(name); i++) {
-        hash = 31 * hash + name[i];
-    }
-    return hash % MAX_CAPACITY;
+unsigned long long_hash(const void *key) {
+    return (long)key % MAX_CAPACITY;
 }
 
-int string_compare(const void *k1, const void *k2) {
-    return DS_STRCMP((char *)k1, (char *)k2);
+int long_compare(const void *k1, const void *k2) {
+    return (long)k1 - (long)k2;
 }
 
 void px_to_square(Vector2 *px, square_t *square) {

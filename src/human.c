@@ -32,7 +32,7 @@ static void chess_print_promotion(const chess_state_t *state) {
         int col_px = SCREEN_WIDTH / 2 - PROMOTION_GUI_WIDTH / 2 + i * PROMOTION_GUI_HEIGHT;
         int row_px = SCREEN_HEIGHT / 2 - PROMOTION_GUI_HEIGHT / 2;
 
-        Texture2D texture = LoadTextureCached(chess_piece_texture_path(piece));
+        Texture2D texture = LoadTextureCachedPiece(piece);
         float scale = (float)PROMOTION_GUI_HEIGHT / texture.width;
         DrawTextureEx(texture, (Vector2){.x = col_px, .y = row_px}, 0, scale, WHITE);
     }

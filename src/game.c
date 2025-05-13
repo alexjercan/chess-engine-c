@@ -96,7 +96,7 @@ static void chess_print_board() {
             square_t square = (square_t){.rank = rank, .file = file};
             char piece = chess_square_get(&state.board, square);
             if (piece != CHESS_NONE) {
-                Texture2D texture = LoadTextureCached(chess_piece_texture_path(piece));
+                Texture2D texture = LoadTextureCachedPiece(piece);
                 float scale = (float)cell_width / texture.width;
                 DrawTextureEx(texture, (Vector2){.x = file_px, .y = rank_px}, 0, scale, WHITE);
             }

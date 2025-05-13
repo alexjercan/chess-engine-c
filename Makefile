@@ -1,5 +1,5 @@
 CC = clang
-CFLAGS = -Wall -Wextra -std=c11 -g
+CFLAGS = -Wall -Wextra -std=c11 -pg
 SRC = src
 OUT = dist
 
