@@ -1,11 +1,10 @@
 import { ASSETS } from "./assets";
 
-const STATE_SIZE = 88;
-const MEMORY_SIZE: number = 8192;
-
-type MovePlayerFunction = (state: number) => void;
+type MovePlayerFunction = (state: number, moves: number, count: number, index: number) => void;
 type UtilMallocFunction = (size: number) => number;
 type UtilFreeFunction = (ptr: number) => void;
+type ChessStateSizeFunction = () => number;
+type ChessMoveSizeFunction = () => number;
 
 interface WasmModule {
     wasm: WebAssembly.WebAssemblyInstantiatedSource | null;
@@ -386,55 +385,67 @@ export class GameJS implements WasmModule {
         this.wasm = wasm;
     }
 
-    move_player1_fn(stateAddr: number): void {
-        const stateMemory = new Uint8Array(
+    move_player_fn(player: WebAssembly.WebAssemblyInstantiatedSource, stateAddr: number, movesAddr: number, count: number, indexAddr: number): void {
+        const state_size = (
+            this.wasm.instance.exports
+                .chess_state_size as ChessStateSizeFunction
+        )();
+        const move_size = (
+            this.wasm.instance.exports
+                .chess_move_size as ChessMoveSizeFunction
+        )();
+        const moves_size = move_size * count;
+
+        const wasmMemoryBuffer = new Uint8Array(
             (this.wasm!.instance.exports.memory as WebAssembly.Memory).buffer
         );
-        const player1MemoryBuffer = new Uint8Array(
-            (this.player1.instance.exports.memory as WebAssembly.Memory).buffer
-        );
-        const addr = (
-            this.player1.instance.exports.util_malloc as UtilMallocFunction
-        )(STATE_SIZE);
-        player1MemoryBuffer.set(
-            stateMemory.subarray(stateAddr, stateAddr + STATE_SIZE),
-            addr
+        const playerMemoryBuffer = new Uint8Array(
+            (player.instance.exports.memory as WebAssembly.Memory).buffer
         );
 
-        let chess_move = this.player1.instance.exports
+        const playerStateAddr = (
+            player.instance.exports.util_malloc as UtilMallocFunction
+        )(state_size);
+        const playerMovesAddr = (
+            player.instance.exports.util_malloc as UtilMallocFunction
+        )(moves_size);
+        const playerIndexAddr = (
+            player.instance.exports.util_malloc as UtilMallocFunction
+        )(4);
+
+        playerMemoryBuffer.set(
+            wasmMemoryBuffer.subarray(stateAddr, stateAddr + state_size),
+            playerStateAddr
+        );
+        playerMemoryBuffer.set(
+            wasmMemoryBuffer.subarray(movesAddr, movesAddr + moves_size),
+            playerMovesAddr
+        );
+        playerMemoryBuffer.set(
+            wasmMemoryBuffer.subarray(indexAddr, indexAddr + 4),
+            playerIndexAddr
+        );
+
+        let chess_move = player.instance.exports
             .chess_move as MovePlayerFunction;
-        chess_move(addr);
+        chess_move(playerStateAddr, playerMovesAddr, count, playerIndexAddr);
 
-        stateMemory.set(
-            player1MemoryBuffer.subarray(addr, addr + STATE_SIZE),
-            stateAddr
+        wasmMemoryBuffer.set(
+            playerMemoryBuffer.subarray(playerIndexAddr, playerIndexAddr + 4),
+            indexAddr
         );
-        (this.player1.instance.exports.util_free as UtilFreeFunction)(addr);
+        (player.instance.exports.util_free as UtilFreeFunction)(playerStateAddr);
+        (player.instance.exports.util_free as UtilFreeFunction)(playerMovesAddr);
+        (player.instance.exports.util_free as UtilFreeFunction)(playerIndexAddr);
     }
 
-    move_player2_fn(state: number): void {
-        const stateMemory = new Uint8Array(
-            (this.wasm!.instance.exports.memory as WebAssembly.Memory).buffer
-        );
-        const player2MemoryBuffer = new Uint8Array(
-            (this.player2.instance.exports.memory as WebAssembly.Memory).buffer
-        );
-        const addr = (
-            this.player2.instance.exports.util_malloc as UtilMallocFunction
-        )(STATE_SIZE);
-        player2MemoryBuffer.set(
-            stateMemory.slice(state, state + STATE_SIZE),
-            addr
-        );
+    move_player1_fn(stateAddr: number, movesAddr: number, count: number, indexAddr: number): void {
+        const player = this.player1;
+        this.move_player_fn(player, stateAddr, movesAddr, count, indexAddr);
+    }
 
-        let chess_move = this.player2.instance.exports
-            .chess_move as MovePlayerFunction;
-        chess_move(addr);
-
-        stateMemory.set(
-            player2MemoryBuffer.slice(addr, addr + STATE_SIZE),
-            state
-        );
-        (this.player2.instance.exports.util_free as UtilFreeFunction)(addr);
+    move_player2_fn(stateAddr: number, movesAddr: number, count: number, indexAddr: number): void {
+        const player = this.player2;
+        this.move_player_fn(player, stateAddr, movesAddr, count, indexAddr);
     }
 }

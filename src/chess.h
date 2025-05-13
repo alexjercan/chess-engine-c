@@ -17,6 +17,16 @@ typedef struct square_t {
 #define MK_SQUARE(r, f)                                                        \
     (square_t) { .rank = r, .file = f }
 
+typedef struct move_t {
+    square_t start;
+    square_t end;
+    char move;
+    char promotion; // In case we have a promote move we have to choose a piece
+} move_t;
+
+#define MK_MOVE(s, e, m, p)                                                  \
+    (move_t) { .start = s, .end = e, .move = m, .promotion = p }
+
 typedef struct chess_state_t {
     chess_board_t board;
     int last_move; // 1 if we have a last move
@@ -28,6 +38,9 @@ typedef struct chess_state_t {
 
     char current_player;
 } chess_state_t;
+
+unsigned long chess_state_size(void);
+unsigned long chess_move_size(void);
 
 #define CHESS_NONE 0
 
@@ -56,6 +69,24 @@ typedef struct chess_state_t {
 #define SQUARE_LIGHT_MOVE 0xC4A382
 #define SQUARE_MOVE 0xFF0000
 
+char chess_square_get(const chess_board_t *board, square_t square);
+void chess_square_set(chess_board_t *board, square_t square, char piece);
+boolean chess_move_get(const move_t *moves, int count, move_t filter, int *index);
+
+#define CHESS_START "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1 "
+
+void chess_init_fen(chess_state_t *state, ds_string_slice fen);
+void chess_apply_move(chess_state_t *state, square_t start, square_t end, char move);
+void chess_generate_moves(const chess_state_t *state, ds_dynamic_array *moves /* move_t */);
+char chess_flip_player(char current);
+
+// Functions to check if the game is over
+int chess_is_in_check(const chess_state_t *state, char current);
+int chess_is_checkmate(const chess_state_t *state, char current);
+int chess_is_stalemate(const chess_state_t *state, char current);
+int chess_is_draw(const chess_state_t *state, char current);
+
+// Functions to count the number of positions for testing
 typedef struct perft_t {
     int nodes;
     int captures;
@@ -66,20 +97,10 @@ typedef struct perft_t {
     int checkmates;
 } perft_t;
 
-char chess_square_get(chess_board_t *board, square_t square);
-void chess_square_set(chess_board_t *board, square_t square, char piece);
+void chess_count_positions(const chess_state_t *state, char current, int depth, perft_t *perft);
 
-#define CHESS_START "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1 "
-
-void chess_init_fen(chess_state_t *state, ds_string_slice fen);
-void chess_apply_move(chess_state_t *state, square_t start, square_t end, char move);
-void chess_valid_moves(chess_state_t *state, square_t start, chess_board_t *moves);
-
-int chess_is_in_check(chess_state_t *state, char current);
-int chess_is_checkmate(chess_state_t *state, char current);
-int chess_controls(chess_state_t *state, square_t target, char current);
-
-char chess_flip_player(char current);
-void chess_count_positions(chess_state_t *state, char current, int depth, perft_t *perft);
+// These are used for the different strategies
+void chess_init(void *memory, unsigned long size);
+void chess_move(const chess_state_t *state, move_t *moves, int count, int *index);
 
 #endif // CHESS_H

@@ -15,17 +15,16 @@ typedef struct arguments_t {
     char *player2;
 } arguments_t;
 
-init_t init_player1 = NULL;
-init_t init_player2 = NULL;
-move_t move_player1 = NULL;
-move_t move_player2 = NULL;
+init_fn init_player1 = NULL;
+init_fn init_player2 = NULL;
+move_fn move_player1 = NULL;
+move_fn move_player2 = NULL;
 
 extern void init_player1_fn(void *memory, unsigned long size) { return init_player1(memory, size); }
 extern void init_player2_fn(void *memory, unsigned long size) { return init_player2(memory, size); }
 
-extern void move_player1_fn(chess_state_t *board) { return move_player1(board); }
-extern void move_player2_fn(chess_state_t *board) { return move_player2(board); }
-
+extern void move_player1_fn(const chess_state_t *state, move_t *choices, int count, int *index) { return move_player1(state, choices, count, index); }
+extern void move_player2_fn(const chess_state_t *state, move_t *choices, int count, int *index) { return move_player2(state, choices, count, index); }
 
 void parse_arguments(int argc, char **argv, arguments_t *args) {
     ds_argparse_parser parser = {0};
@@ -85,13 +84,13 @@ int load_move_function(arguments_t args) {
         return -1;
     }
 
-    move_player1 = (move_t)dlsym(strat1, "chess_move");
+    move_player1 = (move_fn)dlsym(strat1, "chess_move");
     if (move_player1 == NULL) {
         fprintf(stderr, "%s\n", dlerror());
         return -1;
     }
 
-    init_player1 = (init_t)dlsym(strat1, "chess_init");
+    init_player1 = (init_fn)dlsym(strat1, "chess_init");
     if (init_player1 == NULL) {
         fprintf(stderr, "%s\n", dlerror());
         return -1;
@@ -103,13 +102,13 @@ int load_move_function(arguments_t args) {
         return -1;
     }
 
-    move_player2 = (move_t)dlsym(strat2, "chess_move");
+    move_player2 = (move_fn)dlsym(strat2, "chess_move");
     if (move_player2 == NULL) {
         fprintf(stderr, "%s\n", dlerror());
         return -1;
     }
 
-    init_player2 = (init_t)dlsym(strat2, "chess_init");
+    init_player2 = (init_fn)dlsym(strat2, "chess_init");
     if (init_player2 == NULL) {
         fprintf(stderr, "%s\n", dlerror());
         return -1;

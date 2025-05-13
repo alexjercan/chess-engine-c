@@ -11,7 +11,6 @@ static int is_selected = 0;
 static int promotion_gui = 0;
 static square_t selected_square = {0};
 static square_t promotion_square = {0};
-static chess_board_t moves = {0};
 
 static void chess_print_promotion(const chess_state_t *state) {
     int col_px = SCREEN_WIDTH / 2 - PROMOTION_GUI_WIDTH / 2;
@@ -43,14 +42,16 @@ void chess_init(void *memory, unsigned long size) {
     util_init(memory, size);
 }
 
-void chess_move(chess_state_t *state) {
+void chess_move(const chess_state_t *state, move_t *choices, int count, int *index) {
+    *index = -1;
+
     int cell_width = SCREEN_WIDTH / CHESS_WIDTH;
     int cell_height = SCREEN_HEIGHT / CHESS_HEIGHT;
 
-    for (unsigned int file = 0; file < CHESS_WIDTH; file++) {
-        for (unsigned int rank = 0; rank < CHESS_HEIGHT; rank++) {
-            square_t end = (square_t){.rank = rank, .file = file};
-            char move = chess_square_get(&moves, end);
+    for (int i = 0; i < count; i++) {
+        if (choices[i].start.file == selected_square.file && choices[i].start.rank == selected_square.rank) {
+            char move = choices[i].move;
+            square_t end = choices[i].end;
 
             if (move != CHESS_NONE) {
                 Vector2 px = {0};
@@ -79,28 +80,26 @@ void chess_move(chess_state_t *state) {
             if ((chess_square_get(&state->board, square) & COLOR_FLAG) == state->current_player) {
                 is_selected = 1;
                 selected_square = square;
-                chess_valid_moves(state, square, &moves);
             } else {
+                int i = -1;
                 is_selected = 0;
-                char move = chess_square_get(&moves, square);
-                if (move != CHESS_NONE) {
-                    chess_apply_move(state, selected_square, square, move);
+                chess_move_get(choices, count, MK_MOVE(selected_square, square, CHESS_NONE, CHESS_NONE), &i);
+                if (i != -1) {
+                    char move = choices[i].move;
                     if ((move & CHESS_PROMOTE) != 0) {
                         promotion_gui = 1;
                         promotion_square = square;
                     } else {
-                        state->current_player = chess_flip_player(state->current_player);
+                        chess_move_get(choices, count, MK_MOVE(selected_square, square, move, CHESS_NONE), index);
                     }
                 }
-                DS_MEMSET(&moves, 0, sizeof(chess_board_t));
             }
         } else if (promotion_gui == 1) {
             int option_index = px_to_option(&mouse_px);
             if (option_index >= 0) {
                 char option = CHESS_PROMOTE_OPTIONS[option_index];
                 char piece = option | state->current_player;
-                chess_square_set(&state->board, promotion_square, piece);
-                state->current_player = chess_flip_player(state->current_player);
+                chess_move_get(choices, count, MK_MOVE(selected_square, promotion_square, CHESS_NONE, piece), index);
                 promotion_gui = 0;
             }
         }

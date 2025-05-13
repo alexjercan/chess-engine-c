@@ -2,8 +2,14 @@
 #include "game.h"
 #include "util.h"
 
+extern DS_ALLOCATOR allocator;
+
 static chess_state_t state = {0};
 static int checkmate_gui = 0;
+static int stalemate_gui = 0;
+static int draw_gui = 0;
+
+static ds_dynamic_array moves = {0}; /* move_t */
 
 static void chess_print_board() {
     int cell_width = SCREEN_WIDTH / CHESS_WIDTH;
@@ -98,7 +104,7 @@ static void chess_print_board() {
     }
 }
 
-static void chess_print_checkmate() {
+static void chess_print_message(const char *text) {
     int col_px = SCREEN_WIDTH / 2 - PROMOTION_GUI_WIDTH / 2;
     int row_px = SCREEN_HEIGHT / 2 - PROMOTION_GUI_HEIGHT / 2;
 
@@ -109,7 +115,6 @@ static void chess_print_checkmate() {
 
     DrawRectangle(col_px, row_px, PROMOTION_GUI_WIDTH, PROMOTION_GUI_HEIGHT, color);
 
-    const char *text = "Checkmate!";
     int text_width = MeasureText(text, 20);
     int text_height = 20;
     int text_x = col_px + PROMOTION_GUI_WIDTH / 2 - text_width / 2;
@@ -124,6 +129,9 @@ void init(void *memory, unsigned long size) {
     ds_string_slice fen = DS_STRING_SLICE(CHESS_START);
     chess_init_fen(&state, fen);
 
+    ds_dynamic_array_init_allocator(&moves, sizeof(move_t), &allocator);
+    chess_generate_moves(&state, &moves);
+
     InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "Chess Engine");
 }
 
@@ -135,16 +143,39 @@ void tick(float deltaTime) {
     ClearBackground(RAYWHITE);
     chess_print_board();
     if (checkmate_gui == 1) {
-        chess_print_checkmate();
-    }
-
-    if (chess_is_checkmate(&state, state.current_player)) {
-        checkmate_gui = 1;
+        chess_print_message("Checkmate!");
+    } else if (stalemate_gui == 1) {
+        chess_print_message("Stalemate!");
+    } else if (draw_gui == 1) {
+        chess_print_message("Draw!");
     } else {
+        int index = -1;
+
         if (state.current_player == CHESS_WHITE) {
-            move_player1_fn(&state);
+            move_player1_fn(&state, moves.items, moves.count, &index);
         } else {
-            move_player2_fn(&state);
+            move_player2_fn(&state, moves.items, moves.count, &index);
+        }
+
+        if (index != -1) {
+            move_t *move = NULL;
+            ds_dynamic_array_get_ref(&moves, index, (void **)&move);
+
+            chess_apply_move(&state, move->start, move->end, move->move);
+            if (move->promotion != CHESS_NONE) {
+                chess_square_set(&state.board, move->end, move->promotion);
+            }
+            state.current_player = chess_flip_player(state.current_player);
+
+            chess_generate_moves(&state, &moves);
+
+            if (checkmate_gui == 0 && chess_is_checkmate(&state, state.current_player)) {
+                checkmate_gui = 1;
+            } else if (stalemate_gui == 0 && chess_is_stalemate(&state, state.current_player)) {
+                stalemate_gui = 1;
+            } else if (draw_gui == 0 && chess_is_draw(&state, state.current_player)) {
+                draw_gui = 1;
+            }
         }
     }
 
