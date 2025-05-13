@@ -1,5 +1,8 @@
 #include "util.h"
 
+DS_ALLOCATOR allocator = {0};
+static ds_hashmap textures = {0};
+
 #ifndef ASSETS_FOLDER
 #define ASSETS_FOLDER "dist/assets/"
 #endif
@@ -36,7 +39,7 @@ const char *chess_piece_texture_path(char piece) {
     }
 }
 
-Texture2D LoadTextureCached(ds_hashmap *textures, const char *fileName) {
+Texture2D LoadTextureCachedMap(ds_hashmap *textures, const char *fileName) {
     Texture2D texture = {0};
     ds_hashmap_kv kv = { .key = (void *)fileName, .value = NULL };
     DS_UNREACHABLE(ds_hashmap_get_or_default(textures, &kv, NULL));
@@ -52,6 +55,16 @@ Texture2D LoadTextureCached(ds_hashmap *textures, const char *fileName) {
     ds_hashmap_insert(textures, &kv);
 
     return texture;
+}
+
+Texture2D LoadTextureCached(const char *fileName) {
+    if (textures.capacity == 0) {
+        if (ds_hashmap_init_allocator(&textures, MAX_CAPACITY, string_hash, string_compare, &allocator) != DS_OK) {
+            DS_PANIC("Error initializing hashmap");
+        }
+    }
+
+    return LoadTextureCachedMap(&textures, fileName);
 }
 
 unsigned long string_hash(const void *key) {
@@ -81,4 +94,27 @@ void square_to_px(square_t *square, Vector2 *px) {
 
     px->x = square->file * cell_width;
     px->y = (CHESS_WIDTH - square->rank - 1) * cell_height;
+}
+
+int px_to_option(Vector2 *px) {
+    int col_px = SCREEN_WIDTH / 2 - PROMOTION_GUI_WIDTH / 2;
+    int row_px = SCREEN_HEIGHT / 2 - PROMOTION_GUI_HEIGHT / 2;
+
+    if (px->x < col_px || px->x > col_px + PROMOTION_GUI_WIDTH || px->y < row_px || px->y > row_px + PROMOTION_GUI_HEIGHT) {
+        return -1;
+    } else {
+        return (px->x - col_px) / PROMOTION_GUI_HEIGHT;
+    }
+}
+
+void util_init(void *memory, unsigned long size) {
+    DS_INIT_ALLOCATOR(&allocator, memory, size);
+}
+
+void *util_malloc(unsigned long size) {
+    return DS_MALLOC(&allocator, size);
+}
+
+void util_free(void *ptr) {
+    DS_FREE(&allocator, ptr);
 }

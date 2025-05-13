@@ -6,6 +6,8 @@
 #define CHESS_WIDTH 8
 #define CHESS_HEIGHT 8
 
+#define CHESS_PROMOTE_OPTIONS (char[4]){ CHESS_QUEEN, CHESS_ROOK, CHESS_BISHOP, CHESS_KNIGHT }
+
 typedef char chess_board_t[CHESS_HEIGHT * CHESS_WIDTH];
 
 typedef struct square_t {

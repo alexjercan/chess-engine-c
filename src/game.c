@@ -2,8 +2,6 @@
 #include "game.h"
 #include "util.h"
 
-static DS_ALLOCATOR allocator;
-static ds_hashmap textures = {0};
 static chess_state_t state = {0};
 static int checkmate_gui = 0;
 
@@ -92,7 +90,7 @@ static void chess_print_board() {
             square_t square = (square_t){.rank = rank, .file = file};
             char piece = chess_square_get(&state.board, square);
             if (piece != CHESS_NONE) {
-                Texture2D texture = LoadTextureCached(&textures, chess_piece_texture_path(piece));
+                Texture2D texture = LoadTextureCached(chess_piece_texture_path(piece));
                 float scale = (float)cell_width / texture.width;
                 DrawTextureEx(texture, (Vector2){.x = file_px, .y = rank_px}, 0, scale, WHITE);
             }
@@ -121,11 +119,7 @@ static void chess_print_checkmate() {
 }
 
 void init(void *memory, unsigned long size) {
-    DS_INIT_ALLOCATOR(&allocator, memory, size);
-
-    if (ds_hashmap_init_allocator(&textures, MAX_CAPACITY, string_hash, string_compare, &allocator) != DS_OK) {
-        DS_PANIC("Error initializing hashmap");
-    }
+    util_init(memory, size);
 
     ds_string_slice fen = DS_STRING_SLICE(CHESS_START);
     chess_init_fen(&state, fen);

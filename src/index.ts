@@ -30,9 +30,8 @@ async function main() {
     let gamejs = new GameJS(player1, player2);
 
     let wasm = await create("main.wasm", raylib, gamejs);
-    const memory = (
-        wasm.instance.exports.__heap_base as WebAssembly.Global
-    ).value;
+    const memory = (wasm.instance.exports.__heap_base as WebAssembly.Global)
+        .value;
     let init = wasm.instance.exports.init as InitFunction;
     init(memory, MEMORY_SIZE);
 

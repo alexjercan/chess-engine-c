@@ -7,25 +7,11 @@
 #include "chess.h"
 #include "util.h"
 
-static DS_ALLOCATOR allocator;
-static ds_hashmap textures = {0};
 static int is_selected = 0;
 static int promotion_gui = 0;
 static square_t selected_square = {0};
 static square_t promotion_square = {0};
 static chess_board_t moves = {0};
-static char options[4] = { CHESS_QUEEN, CHESS_ROOK, CHESS_BISHOP, CHESS_KNIGHT };
-
-static int px_to_option(Vector2 *px) {
-    int col_px = SCREEN_WIDTH / 2 - PROMOTION_GUI_WIDTH / 2;
-    int row_px = SCREEN_HEIGHT / 2 - PROMOTION_GUI_HEIGHT / 2;
-
-    if (px->x < col_px || px->x > col_px + PROMOTION_GUI_WIDTH || px->y < row_px || px->y > row_px + PROMOTION_GUI_HEIGHT) {
-        return -1;
-    } else {
-        return (px->x - col_px) / PROMOTION_GUI_HEIGHT;
-    }
-}
 
 static void chess_print_promotion(const chess_state_t *state) {
     int col_px = SCREEN_WIDTH / 2 - PROMOTION_GUI_WIDTH / 2;
@@ -41,24 +27,20 @@ static void chess_print_promotion(const chess_state_t *state) {
     DrawRectangle(col_px, row_px, PROMOTION_GUI_WIDTH, PROMOTION_GUI_HEIGHT, color);
 
     for (unsigned int i = 0; i < 4; i++) {
-        char option = options[i];
+        char option = CHESS_PROMOTE_OPTIONS[i];
         char piece = option | state->current_player;
 
         int col_px = SCREEN_WIDTH / 2 - PROMOTION_GUI_WIDTH / 2 + i * PROMOTION_GUI_HEIGHT;
         int row_px = SCREEN_HEIGHT / 2 - PROMOTION_GUI_HEIGHT / 2;
 
-        Texture2D texture = LoadTextureCached(&textures, chess_piece_texture_path(piece));
+        Texture2D texture = LoadTextureCached(chess_piece_texture_path(piece));
         float scale = (float)PROMOTION_GUI_HEIGHT / texture.width;
         DrawTextureEx(texture, (Vector2){.x = col_px, .y = row_px}, 0, scale, WHITE);
     }
 }
 
 void chess_init(void *memory, unsigned long size) {
-    DS_INIT_ALLOCATOR(&allocator, memory, size);
-
-    if (ds_hashmap_init_allocator(&textures, MAX_CAPACITY, string_hash, string_compare, &allocator) != DS_OK) {
-        DS_PANIC("Error initializing hashmap");
-    }
+    util_init(memory, size);
 }
 
 void chess_move(chess_state_t *state) {
@@ -115,7 +97,7 @@ void chess_move(chess_state_t *state) {
         } else if (promotion_gui == 1) {
             int option_index = px_to_option(&mouse_px);
             if (option_index >= 0) {
-                char option = options[option_index];
+                char option = CHESS_PROMOTE_OPTIONS[option_index];
                 char piece = option | state->current_player;
                 chess_square_set(&state->board, promotion_square, piece);
                 state->current_player = chess_flip_player(state->current_player);

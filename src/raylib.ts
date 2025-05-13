@@ -1,6 +1,11 @@
 import { ASSETS } from "./assets";
 
+const STATE_SIZE = 88;
+const MEMORY_SIZE: number = 8192;
+
 type MovePlayerFunction = (state: number) => void;
+type UtilMallocFunction = (size: number) => number;
+type UtilFreeFunction = (ptr: number) => void;
 
 interface WasmModule {
     wasm: WebAssembly.WebAssemblyInstantiatedSource | null;
@@ -9,23 +14,29 @@ interface WasmModule {
 }
 
 function make_environment(...modules: WasmModule[]) {
-    return new Proxy({}, {
-        get(_target, prop, _receiver) {
-            for (const m of modules) {
-                if ((m as any)[prop] !== undefined) {
-                    return (m as any)[prop].bind(m);
+    return new Proxy(
+        {},
+        {
+            get(_target, prop, _receiver) {
+                for (const m of modules) {
+                    if ((m as any)[prop] !== undefined) {
+                        return (m as any)[prop].bind(m);
+                    }
                 }
-            }
-            return (...args: any[]) => {
-                throw new Error(`NOT IMPLEMENTED: ${String(prop)} ${args}`);
-            }
+                return (...args: any[]) => {
+                    throw new Error(`NOT IMPLEMENTED: ${String(prop)} ${args}`);
+                };
+            },
         }
-    });
+    );
 }
 
-export async function create(wasmPath: string, ...modules: WasmModule[]): Promise<WebAssembly.WebAssemblyInstantiatedSource> {
+export async function create(
+    wasmPath: string,
+    ...modules: WasmModule[]
+): Promise<WebAssembly.WebAssemblyInstantiatedSource> {
     const wasm = await WebAssembly.instantiateStreaming(fetch(wasmPath), {
-        env: make_environment(...modules)
+        env: make_environment(...modules),
     });
 
     for (const m of modules) {
@@ -148,8 +159,7 @@ let ctx: CanvasRenderingContext2D = canvas.getContext("2d")!;
 export class RaylibJS implements WasmModule {
     wasm: WebAssembly.WebAssemblyInstantiatedSource | null = null;
 
-    constructor() {
-    }
+    constructor() {}
 
     load(wasm: WebAssembly.WebAssemblyInstantiatedSource): void {
         this.wasm = wasm;
@@ -361,10 +371,13 @@ export class RaylibJS implements WasmModule {
 
 export class GameJS implements WasmModule {
     wasm: WebAssembly.WebAssemblyInstantiatedSource | null = null;
-    player1: WebAssembly.WebAssemblyInstantiatedSource
-    player2: WebAssembly.WebAssemblyInstantiatedSource
+    player1: WebAssembly.WebAssemblyInstantiatedSource;
+    player2: WebAssembly.WebAssemblyInstantiatedSource;
 
-    constructor(player1: WebAssembly.WebAssemblyInstantiatedSource, player2: WebAssembly.WebAssemblyInstantiatedSource) {
+    constructor(
+        player1: WebAssembly.WebAssemblyInstantiatedSource,
+        player2: WebAssembly.WebAssemblyInstantiatedSource
+    ) {
         this.player1 = player1;
         this.player2 = player2;
     }
@@ -374,34 +387,54 @@ export class GameJS implements WasmModule {
     }
 
     move_player1_fn(stateAddr: number): void {
-        const stateSize = 88;
         const stateMemory = new Uint8Array(
             (this.wasm!.instance.exports.memory as WebAssembly.Memory).buffer
         );
         const player1MemoryBuffer = new Uint8Array(
             (this.player1.instance.exports.memory as WebAssembly.Memory).buffer
         );
-        player1MemoryBuffer.set(stateMemory.slice(stateAddr, stateAddr + stateSize), 0);
+        const addr = (
+            this.player1.instance.exports.util_malloc as UtilMallocFunction
+        )(STATE_SIZE);
+        player1MemoryBuffer.set(
+            stateMemory.subarray(stateAddr, stateAddr + STATE_SIZE),
+            addr
+        );
 
-        let chess_move = this.player1.instance.exports.chess_move as MovePlayerFunction;
-        chess_move(0);
+        let chess_move = this.player1.instance.exports
+            .chess_move as MovePlayerFunction;
+        chess_move(addr);
 
-        stateMemory.set(player1MemoryBuffer.slice(0, stateSize), stateAddr);
+        stateMemory.set(
+            player1MemoryBuffer.subarray(addr, addr + STATE_SIZE),
+            stateAddr
+        );
+        (this.player1.instance.exports.util_free as UtilFreeFunction)(addr);
     }
 
     move_player2_fn(state: number): void {
-        const stateSize = 88;
         const stateMemory = new Uint8Array(
             (this.wasm!.instance.exports.memory as WebAssembly.Memory).buffer
         );
         const player2MemoryBuffer = new Uint8Array(
             (this.player2.instance.exports.memory as WebAssembly.Memory).buffer
         );
-        player2MemoryBuffer.set(stateMemory.slice(state, state + stateSize), 0);
+        const addr = (
+            this.player2.instance.exports.util_malloc as UtilMallocFunction
+        )(STATE_SIZE);
+        player2MemoryBuffer.set(
+            stateMemory.slice(state, state + STATE_SIZE),
+            addr
+        );
 
-        let chess_move = this.player2.instance.exports.chess_move as MovePlayerFunction;
-        chess_move(0);
+        let chess_move = this.player2.instance.exports
+            .chess_move as MovePlayerFunction;
+        chess_move(addr);
 
-        stateMemory.set(player2MemoryBuffer.slice(0, stateSize), state);
+        stateMemory.set(
+            player2MemoryBuffer.slice(addr, addr + STATE_SIZE),
+            state
+        );
+        (this.player2.instance.exports.util_free as UtilFreeFunction)(addr);
     }
 }
