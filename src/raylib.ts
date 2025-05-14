@@ -135,6 +135,8 @@ let mouseDown: boolean = false;
 let mouseUp: boolean = false;
 let imageIds: string[] = [];
 
+let buttons: number[] = [];
+
 canvas.addEventListener("mousemove", (event) => {
     const rect = canvas.getBoundingClientRect();
     xCoordinate = event.clientX - rect.left;
@@ -145,12 +147,19 @@ canvas.addEventListener("mousedown", (event) => {
     xCoordinate = event.clientX - rect.left;
     yCoordinate = event.clientY - rect.top;
     mouseDown = true;
+
+    buttons.push(event.button);
 });
 canvas.addEventListener("mouseup", (event) => {
     const rect = canvas.getBoundingClientRect();
     xCoordinate = event.clientX - rect.left;
     yCoordinate = event.clientY - rect.top;
     mouseUp = true;
+
+    const index = buttons.indexOf(event.button);
+    if (index > -1) {
+        buttons.splice(index, 1);
+    }
 });
 
 let ctx: CanvasRenderingContext2D = canvas.getContext("2d")!;
@@ -226,9 +235,7 @@ export class RaylibJS implements WasmModule {
     }
 
     IsMouseButtonPressed(button: number): number {
-        // TODO: actually check if the right button is pressed
-
-        if (mouseDown) {
+        if (mouseDown && buttons.includes(button)) {
             mouseDown = false;
             return 1;
         }
