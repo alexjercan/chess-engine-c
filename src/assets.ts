@@ -25,3 +25,5 @@ export const ASSETS: { [key: string]: string } = {
     "Chess_rdt60.png": RookDark,
     "Chess_rlt60.png": RookLight,
 };
+
+export const IMAGE_WIDTH = 60;

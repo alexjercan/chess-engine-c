@@ -1,4 +1,4 @@
-import { ASSETS } from "./assets";
+import { ASSETS, IMAGE_WIDTH } from "./assets";
 
 type MovePlayerFunction = (state: number, moves: number, count: number, index: number) => void;
 type UtilMallocFunction = (size: number) => number;
@@ -276,9 +276,8 @@ export class RaylibJS implements WasmModule {
 
         dumpCInt(memory, index, idAddr);
 
-        // TODO: unhardcode the image to get the width, height, mipmaps and format
-        dumpCInt(memory, 60, widthAddr);
-        dumpCInt(memory, 60, heightAddr);
+        dumpCInt(memory, IMAGE_WIDTH, widthAddr);
+        dumpCInt(memory, IMAGE_WIDTH, heightAddr);
         dumpCInt(memory, 1, mipmapsAddr);
         dumpCInt(memory, 0, formatAddr);
     }
@@ -301,8 +300,7 @@ export class RaylibJS implements WasmModule {
         const image = new Image();
         image.src = imageIds[id];
 
-        // TODO: unhardcode the image to get the width and height
-        ctx.drawImage(image, x, y, 100, 100);
+        ctx.drawImage(image, x, y, IMAGE_WIDTH * scale, IMAGE_WIDTH * scale);
     }
 
     MeasureText(textAddr: number, fontSize: number): number {
