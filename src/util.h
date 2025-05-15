@@ -17,6 +17,17 @@
 
 #define MAX_CAPACITY 100
 
+#define MINMAX_INF 1000000
+
+typedef struct move_score {
+    int move;
+    int score;
+} move_score;
+
+#define MK_MOVE_SCORE(m, s) (move_score){ .move = (m), .score = (s)}
+
+typedef int(eval_fn)(const chess_state_t *, char);
+
 const char *chess_piece_texture_path(char piece);
 Texture2D LoadTextureCachedPiece(char piece);
 
@@ -30,5 +41,8 @@ int long_compare(const void *k1, const void *k2);
 void util_init(void *memory, unsigned long size);
 void *util_malloc(unsigned long size);
 void util_free(void *ptr);
+
+move_score minmax(const chess_state_t *state, move_t *choices, int count,
+                  char maxxing, int depth, int alpha, int beta, eval_fn *eval);
 
 #endif // UTIL_H

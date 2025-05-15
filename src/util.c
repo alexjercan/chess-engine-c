@@ -114,3 +114,64 @@ void *util_malloc(unsigned long size) {
 void util_free(void *ptr) {
     DS_FREE(&allocator, ptr);
 }
+
+move_score minmax(const chess_state_t *state, move_t *choices, int count,
+                  char maxxing, int depth, int alpha, int beta, eval_fn *eval) {
+    char result = chess_checkmate(state);
+    if (result != CHESS_NONE) {
+        return MK_MOVE_SCORE(-1, (maxxing == result) ? -MINMAX_INF : MINMAX_INF);
+    }
+
+    if (chess_draw(state)) {
+        return MK_MOVE_SCORE(-1, 0);
+    }
+
+    if (depth == 0) {
+        return MK_MOVE_SCORE(-1, eval(state, maxxing));
+    }
+
+    move_score best = {.score = 0, .move = -1};
+    if (maxxing == state->current_player) best.score = -MINMAX_INF;
+    else best.score = MINMAX_INF;
+    best.move = (count == 0) ? -1 : rand() % count;
+
+    for (int i = 0; i < count; i++) {
+        chess_state_t clone = {0};
+        DS_MEMCPY(&clone, state, sizeof(chess_state_t));
+
+        move_t move = choices[i];
+        chess_apply_move(&clone, move.start, move.end, move.move);
+        if (move.promotion != CHESS_NONE) {
+            chess_square_set(&clone.board, move.end, move.promotion);
+        }
+        clone.current_player = chess_flip_player(clone.current_player);
+
+        ds_dynamic_array moves = {0}; /* move_t */
+        ds_dynamic_array_init_allocator(&moves, sizeof(move_t), &allocator);
+        chess_generate_moves(&clone, &moves);
+
+        move_score value = minmax(&clone, moves.items, moves.count, maxxing, depth - 1, alpha, beta, eval);
+
+        ds_dynamic_array_free(&moves);
+
+        if (maxxing == state->current_player) {
+            if (value.score > best.score) {
+                best.score = value.score;
+                best.move = i;
+            }
+
+            if (value.score > alpha) alpha = value.score;
+        } else {
+            if (value.score < best.score) {
+                best.score = value.score;
+                best.move = i;
+            }
+
+            if (value.score < beta) beta = value.score;
+        }
+
+        if (alpha > beta) break;
+    }
+
+    return best;
+}

@@ -361,7 +361,7 @@ export class RaylibJS implements WasmModule {
     }
 
     memset(dest: number, c: number, sizeof: number): void {
-        console.log(dest, c, sizeof);
+        console.log("memset", dest, c, sizeof);
 
         const memory = new Uint8Array(
             (this.wasm!.instance.exports.memory as WebAssembly.Memory).buffer

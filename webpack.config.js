@@ -81,6 +81,10 @@ const config = {
             cFiles: ["src/random.c", "src/chess.c", "src/util.c", "src/ds.c"],
             outputFileName: "random.wasm",
         }),
+        new ClangPlugin({
+            cFiles: ["src/minmax.c", "src/chess.c", "src/util.c", "src/ds.c"],
+            outputFileName: "minmax.wasm",
+        }),
     ],
     resolve: {
         extensions: [".ts", ".tsx", ".js", ".wasm"],
