@@ -165,6 +165,10 @@ void tick(float deltaTime) {
             if (move->promotion != CHESS_NONE) {
                 chess_square_set(&state.board, move->end, move->promotion);
             }
+            // In case of apply move we just re-draw the board to be safe
+            ClearBackground(RAYWHITE);
+            chess_print_board();
+
             state.current_player = chess_flip_player(state.current_player);
 
             chess_generate_moves(&state, &moves);
