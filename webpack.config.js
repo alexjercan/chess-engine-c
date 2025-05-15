@@ -77,6 +77,10 @@ const config = {
             cFiles: ["src/human.c", "src/chess.c", "src/util.c", "src/ds.c"],
             outputFileName: "human.wasm",
         }),
+        new ClangPlugin({
+            cFiles: ["src/random.c", "src/chess.c", "src/util.c", "src/ds.c"],
+            outputFileName: "random.wasm",
+        }),
     ],
     resolve: {
         extensions: [".ts", ".tsx", ".js", ".wasm"],

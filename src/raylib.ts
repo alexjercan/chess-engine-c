@@ -371,6 +371,10 @@ export class RaylibJS implements WasmModule {
             memory[dest + i] = c;
         }
     }
+
+    rand(): number {
+        return Math.floor(Math.random() * 2147483647);
+    }
 }
 
 export class GameJS implements WasmModule {

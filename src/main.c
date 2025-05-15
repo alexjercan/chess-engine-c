@@ -122,6 +122,9 @@ int game(arguments_t args) {
         return 1;
     }
 
+    init_player1_fn(NULL, 0);
+    init_player2_fn(NULL, 0);
+
     init(NULL, 0);
     while (!WindowShouldClose()) {
         tick(GetFrameTime());

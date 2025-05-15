@@ -81,4 +81,6 @@ extern void DrawText(const char *text, int posX, int posY, int fontSize, Color c
 extern int StringFormat(char *buffer, const char *format, ...);
 extern void ConsoleLog(const char *format, ...);
 
+extern int rand();
+
 #endif // WASM_H

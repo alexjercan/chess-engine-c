@@ -63,6 +63,12 @@ unsigned long chess_move_size(void);
 #define CHESS_BLACK 16
 #define COLOR_FLAG 0b11000
 
+#define EVAL_PAWN 100
+#define EVAL_KNIGHT 300
+#define EVAL_BISHOP 300
+#define EVAL_ROOK 500
+#define EVAL_QUEEN 900
+
 #define SQUARE_DARK 0xA97C6D
 #define SQUARE_LIGHT 0xF4D3B2
 #define SQUARE_DARK_MOVE 0x794C3D
@@ -81,10 +87,15 @@ void chess_generate_moves(const chess_state_t *state, ds_dynamic_array *moves /*
 char chess_flip_player(char current);
 
 // Functions to check if the game is over
+char chess_checkmate(const chess_state_t *state);
+int chess_draw(const chess_state_t *state);
+
 int chess_is_in_check(const chess_state_t *state, char current);
 int chess_is_checkmate(const chess_state_t *state, char current);
 int chess_is_stalemate(const chess_state_t *state, char current);
 int chess_is_draw(const chess_state_t *state, char current);
+
+int chess_count_material(const chess_state_t *state, char current);
 
 // Functions to count the number of positions for testing
 typedef struct perft_t {

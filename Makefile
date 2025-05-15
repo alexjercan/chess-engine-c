@@ -5,7 +5,7 @@ OUT = dist
 
 .PHONY: all clean
 
-all: $(OUT)/main $(OUT)/libhuman.so
+all: $(OUT)/main $(OUT)/libhuman.so $(OUT)/librandom.so $(OUT)/libminmax.so
 
 $(OUT):
 	mkdir -p $(OUT)
@@ -32,8 +32,20 @@ $(OUT)/ds.o: $(SRC)/ds.c $(SRC)/ds.h | $(OUT)
 $(OUT)/human.o: $(SRC)/human.c $(SRC)/chess.h $(SRC)/util.h | $(OUT)
 	$(CC) $(CFLAGS) -c $< -o $@
 
+$(OUT)/random.o: $(SRC)/random.c $(SRC)/chess.h $(SRC)/util.h | $(OUT)
+	$(CC) $(CFLAGS) -c $< -o $@
+
+$(OUT)/minmax.o: $(SRC)/minmax.c $(SRC)/chess.h $(SRC)/util.h | $(OUT)
+	$(CC) $(CFLAGS) -c $< -o $@
+
 $(OUT)/libhuman.so: $(OUT)/human.o $(OUT)/chess.o $(OUT)/util.o $(OUT)/ds.o | $(OUT)
 	$(CC) -lraylib -shared -fPIC $^ -o $@
+
+$(OUT)/librandom.so: $(OUT)/random.o $(OUT)/chess.o $(OUT)/util.o $(OUT)/ds.o | $(OUT)
+	$(CC) -shared -fPIC $^ -o $@
+
+$(OUT)/libminmax.so: $(OUT)/minmax.o $(OUT)/chess.o $(OUT)/util.o $(OUT)/ds.o | $(OUT)
+	$(CC) -shared -fPIC $^ -o $@
 
 clean:
 	rm -rf $(OUT)

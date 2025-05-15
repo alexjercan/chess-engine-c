@@ -463,6 +463,22 @@ int chess_is_in_check(const chess_state_t *state, char current) {
     return chess_controls(state, king_square, enemy);
 }
 
+char chess_checkmate(const chess_state_t *state) {
+    if (chess_is_checkmate(state, CHESS_WHITE)) {
+        return CHESS_WHITE;
+    }
+
+    if (chess_is_checkmate(state, CHESS_BLACK)) {
+        return CHESS_BLACK;
+    }
+
+    return CHESS_NONE;
+}
+
+int chess_draw(const chess_state_t *state) {
+    return chess_is_stalemate(state, CHESS_WHITE) || chess_is_stalemate(state, CHESS_BLACK);
+}
+
 int chess_is_checkmate(const chess_state_t *state, char current) {
     int check = chess_is_in_check(state, current);
 
@@ -544,6 +560,33 @@ char chess_flip_player(char current) {
     }
 
     return CHESS_BLACK;
+}
+
+int chess_count_material(const chess_state_t *state, char current) {
+    int material = 0;
+
+    for (unsigned int file = 0; file < CHESS_WIDTH; file++) {
+        for (unsigned int rank = 0; rank < CHESS_HEIGHT; rank++) {
+            square_t start = (square_t){.file = file, .rank = rank};
+            char piece = chess_square_get(&state->board, start);
+
+            if ((piece & COLOR_FLAG) == current) {
+                if ((piece & PIECE_FLAG) == CHESS_PAWN) {
+                    material += EVAL_PAWN;
+                } else if ((piece & PIECE_FLAG) == CHESS_KNIGHT) {
+                    material += EVAL_KNIGHT;
+                } else if ((piece & PIECE_FLAG) == CHESS_BISHOP) {
+                    material += EVAL_BISHOP;
+                } else if ((piece & PIECE_FLAG) == CHESS_ROOK) {
+                    material += EVAL_ROOK;
+                } else if ((piece & PIECE_FLAG) == CHESS_QUEEN) {
+                    material += EVAL_QUEEN;
+                }
+            }
+        }
+    }
+
+    return material;
 }
 
 void chess_count_positions(const chess_state_t *state, char current, int depth, perft_t *perft) {
