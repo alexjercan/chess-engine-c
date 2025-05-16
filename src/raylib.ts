@@ -134,6 +134,7 @@ let yCoordinate: number = -1;
 let mouseDown: boolean = false;
 let mouseUp: boolean = false;
 let imageIds: string[] = [];
+let soundIds: string[] = [];
 
 let buttons: number[] = [];
 
@@ -188,6 +189,33 @@ export class RaylibJS implements WasmModule {
         root.appendChild(canvas);
 
         ctx = canvas.getContext("2d");
+    }
+
+    InitAudioDevice(): void {}
+
+    LoadSoundInternal(fileNameAddr: number, idAddr: number): void {
+        const memory = new Uint8Array(
+            (this.wasm!.instance.exports.memory as WebAssembly.Memory).buffer
+        );
+
+        const fileName = parseCString(memory, fileNameAddr);
+
+        const audioPath = ASSETS[fileName];
+        let index = soundIds.findIndex((path) => path === audioPath);
+
+        if (index === -1) {
+            soundIds.push(audioPath);
+            index = soundIds.length - 1;
+        }
+
+        dumpCInt(memory, index, idAddr);
+    }
+
+    PlaySoundInternal(id: number): void {
+        const audio = new Audio();
+        audio.src = soundIds[id];
+
+        audio.play();
     }
 
     ClearBackground(colorAddr: number): void {

@@ -133,6 +133,8 @@ void init(void *memory, unsigned long size) {
     chess_generate_moves(&state, &moves);
 
     InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "Chess Engine");
+
+    InitAudioDevice();
 }
 
 void tick(float deltaTime) {
@@ -165,6 +167,13 @@ void tick(float deltaTime) {
             if (move->promotion != CHESS_NONE) {
                 chess_square_set(&state.board, move->end, move->promotion);
             }
+
+            if (move->move == CHESS_MOVE) {
+                PlaySound(LoadSoundCachedMove(CHESS_MOVE));
+            } else if ((move->move & CHESS_CAPTURE) != 0) {
+                PlaySound(LoadSoundCachedMove(CHESS_CAPTURE));
+            }
+
             // In case of apply move we just re-draw the board to be safe
             ClearBackground(RAYWHITE);
             chess_print_board();

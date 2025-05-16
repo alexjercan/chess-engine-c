@@ -47,6 +47,11 @@ typedef struct Color {
     unsigned char a;        // Color alpha value
 } Color;
 
+// Sound
+typedef struct Sound {
+    unsigned int id;        // The ID of the sound
+} Sound;
+
 extern void InitWindow(int width, int height, const char *title);
 
 extern void ClearBackground(Color color);
@@ -61,7 +66,7 @@ extern void LoadTextureInternal(const char *fileName, int *id, int *width, int *
     ({                                                                         \
         int __id = 0, __width = 0, __height = 0, __mipmaps = 0, __format = 0;  \
         LoadTextureInternal(fileName, &__id, &__width, &__height, &__mipmaps, &__format); \
-        CLITERAL(Texture2D){ __id, __width, __height, __mipmaps, __format }; \
+        CLITERAL(Texture2D){ __id, __width, __height, __mipmaps, __format };   \
     })
 
 extern void DrawTextureEx(Texture2D texture, Vector2 position, float rotation, float scale, Color tint);
@@ -80,6 +85,17 @@ extern void DrawText(const char *text, int posX, int posY, int fontSize, Color c
 
 extern int StringFormat(char *buffer, const char *format, ...);
 extern void ConsoleLog(const char *format, ...);
+
+extern void InitAudioDevice(void);
+extern void LoadSoundInternal(const char *fileName, int *id);
+#define LoadSound(fileName)                                                    \
+    ({                                                                         \
+        int __id = 0;                                                          \
+        LoadSoundInternal(fileName, &__id);                                    \
+        CLITERAL(Sound){ __id };                                               \
+    })
+extern void PlaySoundInternal(int id);
+#define PlaySound(sound) PlaySoundInternal((sound).id)
 
 extern int rand();
 

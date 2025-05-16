@@ -100,6 +100,10 @@ const config = {
                 test: /\.(png|svg|jpg|jpeg|gif)$/i,
                 type: "asset/resource",
             },
+            {
+                test: /\.(ogg)$/i,
+                type: "asset/resource",
+            },
         ],
     },
     mode: "development",

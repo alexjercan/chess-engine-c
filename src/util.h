@@ -9,6 +9,10 @@
 
 #include "chess.h"
 
+#ifndef ASSETS_FOLDER
+#define ASSETS_FOLDER "dist/assets/"
+#endif
+
 #define SCREEN_WIDTH 800
 #define SCREEN_HEIGHT 800
 
@@ -28,8 +32,8 @@ typedef struct move_score {
 
 typedef int(eval_fn)(const chess_state_t *, char);
 
-const char *chess_piece_texture_path(char piece);
 Texture2D LoadTextureCachedPiece(char piece);
+Sound LoadSoundCachedMove(char move);
 
 void px_to_square(Vector2 *px, square_t *square);
 void square_to_px(square_t *square, Vector2 *px);

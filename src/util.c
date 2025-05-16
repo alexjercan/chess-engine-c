@@ -2,12 +2,9 @@
 
 DS_ALLOCATOR allocator = {0};
 static ds_hashmap textures = {0};
+static ds_hashmap sounds = {0};
 
-#ifndef ASSETS_FOLDER
-#define ASSETS_FOLDER "dist/assets/"
-#endif
-
-const char *chess_piece_texture_path(char piece) {
+static const char *chess_piece_texture_path(char piece) {
     switch (piece) {
         case CHESS_PAWN | CHESS_WHITE:
             return ASSETS_FOLDER "Chess_plt60.png";
@@ -39,6 +36,18 @@ const char *chess_piece_texture_path(char piece) {
     }
 }
 
+static const char *chess_move_sound_path(char move) {
+    switch (move) {
+        case CHESS_MOVE:
+            return ASSETS_FOLDER "move.ogg";
+        case CHESS_CAPTURE:
+            return ASSETS_FOLDER "capture.ogg";
+        default:
+            DS_PANIC("Chess move is not supported %d", move);
+            return NULL;
+    }
+}
+
 static Texture2D LoadTextureCachedMap(ds_hashmap *textures, char piece) {
     Texture2D texture = {0};
     long key = piece;
@@ -58,6 +67,25 @@ static Texture2D LoadTextureCachedMap(ds_hashmap *textures, char piece) {
     return texture;
 }
 
+static Sound LoadSoundCachedMap(ds_hashmap *sounds, char move) {
+    Sound sound = {0};
+    long key = move;
+    ds_hashmap_kv kv = { .key = (void *)key, .value = NULL };
+    DS_UNREACHABLE(ds_hashmap_get_or_default(sounds, &kv, NULL));
+
+    if (kv.value != NULL) {
+        DS_MEMCPY(&sound, kv.value, sizeof(Sound));
+        return sound;
+    }
+
+    sound = LoadSound(chess_move_sound_path(move));
+    kv.value = DS_MALLOC(sounds->allocator, sizeof(Sound));
+    DS_MEMCPY(kv.value, &sound, sizeof(Sound));
+    ds_hashmap_insert(sounds, &kv);
+
+    return sound;
+}
+
 Texture2D LoadTextureCachedPiece(char piece) {
     if (textures.capacity == 0) {
         if (ds_hashmap_init_allocator(&textures, MAX_CAPACITY, long_hash, long_compare, &allocator) != DS_OK) {
@@ -66,6 +94,16 @@ Texture2D LoadTextureCachedPiece(char piece) {
     }
 
     return LoadTextureCachedMap(&textures, piece);
+}
+
+Sound LoadSoundCachedMove(char move) {
+    if (sounds.capacity == 0) {
+        if (ds_hashmap_init_allocator(&sounds, MAX_CAPACITY, long_hash, long_compare, &allocator) != DS_OK) {
+            DS_PANIC("Error initializing hashmap");
+        }
+    }
+
+    return LoadSoundCachedMap(&sounds, move);
 }
 
 unsigned long long_hash(const void *key) {

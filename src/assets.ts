@@ -11,6 +11,9 @@ import * as QueenLight from "./assets/Chess_qlt60.png";
 import * as RookDark from "./assets/Chess_rdt60.png";
 import * as RookLight from "./assets/Chess_rlt60.png";
 
+import * as ChessMove from "./assets/move.ogg";
+import * as ChessCapture from "./assets/capture.ogg";
+
 export const ASSETS: { [key: string]: string } = {
     "Chess_bdt60.png": BishopDark,
     "Chess_blt60.png": BishopLight,
@@ -24,6 +27,8 @@ export const ASSETS: { [key: string]: string } = {
     "Chess_qlt60.png": QueenLight,
     "Chess_rdt60.png": RookDark,
     "Chess_rlt60.png": RookLight,
+    "move.ogg": ChessMove,
+    "capture.ogg": ChessCapture,
 };
 
 export const IMAGE_WIDTH = 60;
