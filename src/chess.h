@@ -96,6 +96,7 @@ int chess_is_stalemate(const chess_state_t *state, char current);
 int chess_is_draw(const chess_state_t *state, char current);
 
 int chess_count_material(const chess_state_t *state, char current);
+int chess_count_material_weighted(const chess_state_t *state, char current);
 
 // Functions to count the number of positions for testing
 typedef struct perft_t {

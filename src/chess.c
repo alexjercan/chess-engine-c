@@ -589,6 +589,70 @@ int chess_count_material(const chess_state_t *state, char current) {
     return material;
 }
 
+// Where the pawn wants to go from white perspective
+static chess_board_t chess_pawn_heatmap = {
+    0, 0, 0, 0, 0, 0, 0, 0,
+    1, 1, 1, 1, 1, 1, 1, 1,
+    1, 1, 2, 2, 2, 1, 1, 1,
+    1, 2, 2, 3, 3, 2, 2, 1,
+    1, 2, 3, 3, 3, 2, 2, 1,
+    1, 2, 2, 3, 3, 2, 2, 1,
+    2, 2, 2, 2, 2, 2, 2, 2,
+    1, 1, 1, 1, 1, 1, 1, 1,
+};
+
+// Where the knight wants to go from white perspective
+static chess_board_t chess_knight_heatmap = {
+    0, 0, 0, 0, 0, 0, 0, 0,
+    0, 1, 1, 1, 1, 1, 0, 0,
+    0, 1, 2, 2, 2, 1, 1, 0,
+    0, 1, 2, 2, 2, 1, 1, 0,
+    0, 1, 2, 2, 2, 1, 1, 0,
+    0, 1, 2, 2, 2, 1, 1, 0,
+    0, 1, 1, 1, 1, 1, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0,
+};
+
+// Where the bishop wants to go from white perspective
+static chess_board_t chess_bishop_heatmap = {
+    0, 0, 0, 0, 0, 0, 0, 0,
+    0, 1, 1, 1, 1, 1, 1, 0,
+    0, 1, 2, 2, 2, 2, 1, 0,
+    0, 1, 2, 3, 3, 2, 1, 0,
+    0, 1, 2, 3, 3, 2, 1, 0,
+    0, 1, 2, 2, 2, 2, 1, 0,
+    0, 1, 1, 1, 1, 1, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0,
+};
+
+int chess_count_material_weighted(const chess_state_t *state, char current) {
+    int material = 0;
+
+    for (unsigned int file = 0; file < CHESS_WIDTH; file++) {
+        for (unsigned int rank = 0; rank < CHESS_HEIGHT; rank++) {
+            square_t start = (square_t){.file = file, .rank = rank};
+            square_t heat = (current == CHESS_WHITE) ? (square_t){.file = file, .rank = rank} : (square_t){.file = file, .rank = CHESS_HEIGHT - rank - 1};
+            char piece = chess_square_get(&state->board, start);
+
+            if ((piece & COLOR_FLAG) == current) {
+                if ((piece & PIECE_FLAG) == CHESS_PAWN) {
+                    material += (EVAL_PAWN + 10 * chess_square_get(&chess_pawn_heatmap, heat));
+                } else if ((piece & PIECE_FLAG) == CHESS_KNIGHT) {
+                    material += (EVAL_KNIGHT + 10 * chess_square_get(&chess_knight_heatmap, heat));
+                } else if ((piece & PIECE_FLAG) == CHESS_BISHOP) {
+                    material += (EVAL_BISHOP + 10 * chess_square_get(&chess_bishop_heatmap, heat));
+                } else if ((piece & PIECE_FLAG) == CHESS_ROOK) {
+                    material += EVAL_ROOK;
+                } else if ((piece & PIECE_FLAG) == CHESS_QUEEN) {
+                    material += EVAL_QUEEN;
+                }
+            }
+        }
+    }
+
+    return material;
+}
+
 void chess_count_positions(const chess_state_t *state, char current, int depth, perft_t *perft) {
     if (chess_is_in_check(state, current)) {
         perft->checks += 1;
