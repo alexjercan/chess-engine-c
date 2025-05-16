@@ -13,6 +13,7 @@ import * as RookLight from "./assets/Chess_rlt60.png";
 
 import * as ChessMove from "./assets/move.ogg";
 import * as ChessCapture from "./assets/capture.ogg";
+import * as ChessCastle from "./assets/castle.ogg";
 
 export const ASSETS: { [key: string]: string } = {
     "Chess_bdt60.png": BishopDark,
@@ -29,6 +30,7 @@ export const ASSETS: { [key: string]: string } = {
     "Chess_rlt60.png": RookLight,
     "move.ogg": ChessMove,
     "capture.ogg": ChessCapture,
+    "castle.ogg": ChessCastle,
 };
 
 export const IMAGE_WIDTH = 60;

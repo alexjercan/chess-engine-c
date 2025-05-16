@@ -42,6 +42,10 @@ static const char *chess_move_sound_path(char move) {
             return ASSETS_FOLDER "move.ogg";
         case CHESS_CAPTURE:
             return ASSETS_FOLDER "capture.ogg";
+        case CHESS_CASTLE_SHORT:
+            return ASSETS_FOLDER "castle.ogg";
+        case CHESS_CASTLE_LONG:
+            return ASSETS_FOLDER "castle.ogg";
         default:
             DS_PANIC("Chess move is not supported %d", move);
             return NULL;

@@ -172,6 +172,8 @@ void tick(float deltaTime) {
                 PlaySound(LoadSoundCachedMove(CHESS_MOVE));
             } else if ((move->move & CHESS_CAPTURE) != 0) {
                 PlaySound(LoadSoundCachedMove(CHESS_CAPTURE));
+            } else if ((move->move & CHESS_CASTLE_SHORT) != 0 || (move->move & CHESS_CASTLE_LONG) != 0) {
+                PlaySound(LoadSoundCachedMove(CHESS_CASTLE_SHORT));
             }
 
             // In case of apply move we just re-draw the board to be safe
