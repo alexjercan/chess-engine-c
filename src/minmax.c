@@ -4,11 +4,12 @@
 #include <time.h>
 #endif
 
+#include "time.h"
 #include "chess.h"
 #include "util.h"
 
 #ifndef MINMAX_DEPTH
-#define MINMAX_DEPTH 3
+#define MINMAX_DEPTH 4
 #endif
 
 static int eval(const chess_state_t *state, char current) {
@@ -28,8 +29,17 @@ void chess_init(void *memory, unsigned long size) {
 }
 
 void chess_move(const chess_state_t *state, move_t *choices, int count, int *index) {
+    minmax_info info = {0};
+    clock_t start = clock();
+
     move_score s = minmax(state, choices, count, state->current_player, MINMAX_DEPTH,
-                    -MINMAX_INF, MINMAX_INF, eval);
+                          -MINMAX_INF, MINMAX_INF, eval, &info);
+
+    clock_t end = clock();
+
+    DS_LOG_DEBUG("Minmax took %f seconds", (double)(end - start) / CLOCKS_PER_SEC);
+    DS_LOG_DEBUG("Evaluated %d positions", info.positions);
+    DS_LOG_DEBUG("Evaluation: %d", s.score);
 
     *index = s.move;
 }

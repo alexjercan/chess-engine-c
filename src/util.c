@@ -158,17 +158,21 @@ void util_free(void *ptr) {
 }
 
 move_score minmax(const chess_state_t *state, move_t *choices, int count,
-                  char maxxing, int depth, int alpha, int beta, eval_fn *eval) {
+                  char maxxing, int depth, int alpha, int beta, eval_fn *eval,
+                  minmax_info *info) {
     char result = chess_checkmate(state);
     if (result != CHESS_NONE) {
+        info->positions += 1;
         return MK_MOVE_SCORE(-1, (maxxing == result) ? -MINMAX_INF : MINMAX_INF);
     }
 
     if (chess_draw(state)) {
+        info->positions += 1;
         return MK_MOVE_SCORE(-1, 0);
     }
 
     if (depth == 0) {
+        info->positions += 1;
         return MK_MOVE_SCORE(-1, eval(state, maxxing));
     }
 
@@ -192,7 +196,7 @@ move_score minmax(const chess_state_t *state, move_t *choices, int count,
         ds_dynamic_array_init_allocator(&moves, sizeof(move_t), &allocator);
         chess_generate_moves(&clone, &moves);
 
-        move_score value = minmax(&clone, moves.items, moves.count, maxxing, depth - 1, alpha, beta, eval);
+        move_score value = minmax(&clone, moves.items, moves.count, maxxing, depth - 1, alpha, beta, eval, info);
 
         ds_dynamic_array_free(&moves);
 

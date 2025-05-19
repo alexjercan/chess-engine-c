@@ -28,6 +28,10 @@ typedef struct move_score {
     int score;
 } move_score;
 
+typedef struct minmax_info {
+    int positions;
+} minmax_info;
+
 #define MK_MOVE_SCORE(m, s) (move_score){ .move = (m), .score = (s)}
 
 typedef int(eval_fn)(const chess_state_t *, char);
@@ -47,6 +51,7 @@ void *util_malloc(unsigned long size);
 void util_free(void *ptr);
 
 move_score minmax(const chess_state_t *state, move_t *choices, int count,
-                  char maxxing, int depth, int alpha, int beta, eval_fn *eval);
+                  char maxxing, int depth, int alpha, int beta, eval_fn *eval,
+                  minmax_info *info);
 
 #endif // UTIL_H

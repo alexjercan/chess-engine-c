@@ -7,6 +7,7 @@
 
 #define SUBCMD_GAME "game"
 #define SUBCMD_COUNT_POSITIONS "count-positions"
+#define SUBCMD_MOVE "move"
 
 typedef struct arguments_t {
     char *subcmd;
@@ -38,7 +39,7 @@ void parse_arguments(int argc, char **argv, arguments_t *args) {
     ds_argparse_add_argument(&parser, (ds_argparse_options){
         .short_name = 's',
         .long_name = "subcmd",
-        .description = "The subcommand to use with the engine: `game`, `count-positions`. Default: `game`",
+        .description = "The subcommand to use with the engine: `game`, `count-positions`, `move`. Default: `game`",
         .type = ARGUMENT_TYPE_POSITIONAL,
         .required = false,
     });
@@ -77,39 +78,21 @@ void parse_arguments(int argc, char **argv, arguments_t *args) {
     ds_argparse_parser_free(&parser);
 }
 
-int load_move_function(arguments_t args) {
-    void *strat1 = dlopen(args.player1, RTLD_NOW);
-    if (strat1 == NULL) {
+int load_move_function(const char *player, move_fn *move_player, init_fn *init_player) {
+    void *strat = dlopen(player, RTLD_NOW);
+    if (strat == NULL) {
         fprintf(stderr, "%s\n", dlerror());
         return -1;
     }
 
-    move_player1 = (move_fn)dlsym(strat1, "chess_move");
-    if (move_player1 == NULL) {
+    *move_player = (move_fn)dlsym(strat, "chess_move");
+    if (move_player == NULL) {
         fprintf(stderr, "%s\n", dlerror());
         return -1;
     }
 
-    init_player1 = (init_fn)dlsym(strat1, "chess_init");
-    if (init_player1 == NULL) {
-        fprintf(stderr, "%s\n", dlerror());
-        return -1;
-    }
-
-    void *strat2 = dlopen(args.player2, RTLD_NOW);
-    if (strat2 == NULL) {
-        fprintf(stderr, "%s\n", dlerror());
-        return -1;
-    }
-
-    move_player2 = (move_fn)dlsym(strat2, "chess_move");
-    if (move_player2 == NULL) {
-        fprintf(stderr, "%s\n", dlerror());
-        return -1;
-    }
-
-    init_player2 = (init_fn)dlsym(strat2, "chess_init");
-    if (init_player2 == NULL) {
+    *init_player = (init_fn)dlsym(strat, "chess_init");
+    if (init_player == NULL) {
         fprintf(stderr, "%s\n", dlerror());
         return -1;
     }
@@ -118,7 +101,11 @@ int load_move_function(arguments_t args) {
 }
 
 int game(arguments_t args) {
-    if (load_move_function(args) != 0) {
+    if (load_move_function(args.player1, &move_player1, &init_player1) != 0) {
+        return 1;
+    }
+
+    if (load_move_function(args.player2, &move_player2, &init_player2) != 0) {
         return 1;
     }
 
@@ -151,6 +138,33 @@ int count_positions(int depth) {
     return 0;
 }
 
+int move(arguments_t args) {
+    if (load_move_function(args.player1, &move_player1, &init_player1) != 0) {
+        return 1;
+    }
+
+    init_player1_fn(NULL, 0);
+
+    int index = -1;
+    chess_state_t state = {0};
+    ds_dynamic_array moves = {0}; /* move_t */
+
+    ds_string_slice fen = DS_STRING_SLICE(CHESS_START);
+    chess_init_fen(&state, fen);
+
+    ds_dynamic_array_init_allocator(&moves, sizeof(move_t), NULL);
+    chess_generate_moves(&state, &moves);
+
+    move_player1_fn(&state, moves.items, moves.count, &index);
+
+    move_t *move = NULL;
+    ds_dynamic_array_get_ref(&moves, index, (void **)&move);
+
+    DS_LOG_INFO("Move: %d,%d %d,%d", move->start.file, move->start.rank, move->end.file, move->end.rank);
+
+    return 0;
+}
+
 int main(int argc, char **argv) {
     arguments_t args = {0};
     parse_arguments(argc, argv, &args);
@@ -159,6 +173,8 @@ int main(int argc, char **argv) {
         return game(args);
     } else if (DS_STRCMP(args.subcmd, SUBCMD_COUNT_POSITIONS) == 0) {
         return count_positions(args.depth);
+    } else if (DS_STRCMP(args.subcmd, SUBCMD_MOVE) == 0) {
+        return move(args);
     }
 
     return 1;
