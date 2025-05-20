@@ -8,6 +8,7 @@ static chess_state_t state = {0};
 static int checkmate_gui = 0;
 static int stalemate_gui = 0;
 static int draw_gui = 0;
+static int is_in_check = 0;
 
 static ds_dynamic_array moves = {0}; /* move_t */
 
@@ -40,7 +41,7 @@ static void chess_print_board() {
         }
     }
 
-    if (chess_is_in_check(&state, state.current_player)) {
+    if (is_in_check) {
         int file = king_square.file;
         int rank = king_square.rank;
 
@@ -142,6 +143,10 @@ void tick(float deltaTime) {
 
     BeginDrawing();
 
+    if (is_in_check) {
+        is_in_check = chess_is_in_check(&state, state.current_player);
+    }
+
     ClearBackground(RAYWHITE);
     chess_print_board();
     if (checkmate_gui == 1) {
@@ -162,11 +167,7 @@ void tick(float deltaTime) {
         if (index != -1) {
             move_t *move = NULL;
             ds_dynamic_array_get_ref(&moves, index, (void **)&move);
-
-            chess_apply_move(&state, move->start, move->end, move->move);
-            if (move->promotion != CHESS_NONE) {
-                chess_square_set(&state.board, move->end, move->promotion);
-            }
+            chess_apply_move(&state, *move);
 
             if (move->move == CHESS_MOVE) {
                 PlaySound(LoadSoundCachedMove(CHESS_MOVE));
@@ -181,6 +182,8 @@ void tick(float deltaTime) {
             chess_print_board();
 
             state.current_player = chess_flip_player(state.current_player);
+
+            is_in_check = chess_is_in_check(&state, state.current_player);
 
             chess_generate_moves(&state, &moves);
 

@@ -82,7 +82,7 @@ boolean chess_move_get(const move_t *moves, int count, move_t filter, int *index
 #define CHESS_START "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1 "
 
 void chess_init_fen(chess_state_t *state, ds_string_slice fen);
-void chess_apply_move(chess_state_t *state, square_t start, square_t end, char move);
+void chess_apply_move(chess_state_t *state, move_t move);
 void chess_generate_moves(const chess_state_t *state, ds_dynamic_array *moves /* move_t */);
 char chess_flip_player(char current);
 
@@ -109,7 +109,7 @@ typedef struct perft_t {
     int checkmates;
 } perft_t;
 
-void chess_count_positions(const chess_state_t *state, char current, int depth, perft_t *perft);
+void chess_count_positions(const chess_state_t *state, int depth, perft_t *perft);
 
 // These are used for the different strategies
 void chess_init(void *memory, unsigned long size);

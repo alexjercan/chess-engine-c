@@ -129,7 +129,7 @@ int count_positions(int depth) {
     chess_init_fen(&state, fen);
 
     perft_t perft = {0};
-    chess_count_positions(&state, CHESS_WHITE, depth, &perft);
+    chess_count_positions(&state, depth, &perft);
     DS_LOG_INFO("Depth: %d => Positions: %d Captures: %d E.p.: %d Castles: %d "
                 "Promotions: %d Checks: %d Checkmates: %d",
                 depth, perft.nodes, perft.captures, perft.enp, perft.castles,

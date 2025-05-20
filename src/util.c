@@ -181,24 +181,20 @@ move_score minmax(const chess_state_t *state, move_t *choices, int count,
     else best.score = MINMAX_INF;
     best.move = (count == 0) ? -1 : rand() % count;
 
+    ds_dynamic_array moves = {0}; /* move_t */
+    ds_dynamic_array_init_allocator(&moves, sizeof(move_t), &allocator);
     for (int i = 0; i < count; i++) {
         chess_state_t clone = {0};
         DS_MEMCPY(&clone, state, sizeof(chess_state_t));
 
         move_t move = choices[i];
-        chess_apply_move(&clone, move.start, move.end, move.move);
-        if (move.promotion != CHESS_NONE) {
-            chess_square_set(&clone.board, move.end, move.promotion);
-        }
+        chess_apply_move(&clone, move);
+
         clone.current_player = chess_flip_player(clone.current_player);
 
-        ds_dynamic_array moves = {0}; /* move_t */
-        ds_dynamic_array_init_allocator(&moves, sizeof(move_t), &allocator);
         chess_generate_moves(&clone, &moves);
 
         move_score value = minmax(&clone, moves.items, moves.count, maxxing, depth - 1, alpha, beta, eval, info);
-
-        ds_dynamic_array_free(&moves);
 
         if (maxxing == state->current_player) {
             if (value.score > best.score) {
@@ -218,6 +214,8 @@ move_score minmax(const chess_state_t *state, move_t *choices, int count,
 
         if (alpha > beta) break;
     }
+
+    ds_dynamic_array_free(&moves);
 
     return best;
 }

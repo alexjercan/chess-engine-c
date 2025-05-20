@@ -4,7 +4,6 @@
 #include <time.h>
 #endif
 
-#include "time.h"
 #include "chess.h"
 #include "util.h"
 
@@ -30,6 +29,7 @@ void chess_init(void *memory, unsigned long size) {
 
 void chess_move(const chess_state_t *state, move_t *choices, int count, int *index) {
     minmax_info info = {0};
+
     clock_t start = clock();
 
     move_score s = minmax(state, choices, count, state->current_player, MINMAX_DEPTH,

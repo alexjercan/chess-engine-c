@@ -403,6 +403,10 @@ export class RaylibJS implements WasmModule {
     rand(): number {
         return Math.floor(Math.random() * 2147483647);
     }
+
+    clock(): number {
+        return Date.now();
+    }
 }
 
 export class GameJS implements WasmModule {

@@ -99,4 +99,10 @@ extern void PlaySoundInternal(int id);
 
 extern int rand();
 
+typedef int clock_t;
+
+#define CLOCKS_PER_SEC  ((clock_t) 1000000)
+
+extern clock_t clock(void);
+
 #endif // WASM_H
