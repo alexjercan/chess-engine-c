@@ -45,7 +45,13 @@ void chess_init_fen(chess_state_t *state, ds_string_slice fen) {
         }
     }
 
-    state->current_player = CHESS_WHITE; // TODO: hardcodede to white
+    ds_string_slice current_player = {0};
+    ds_string_slice_tokenize(&fen, ' ', &current_player);
+    if (current_player.len > 0) {
+        state->current_player = (current_player.str[0] == 'w') ? CHESS_WHITE : CHESS_BLACK;
+    } else {
+        state->current_player = CHESS_WHITE;
+    }
 }
 
 char chess_square_get(const chess_board_t *board, square_t square) {

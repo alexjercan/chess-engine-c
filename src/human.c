@@ -9,8 +9,8 @@
 
 static int is_selected = 0;
 static int promotion_gui = 0;
-static square_t selected_square = {0};
-static square_t promotion_square = {0};
+static square_t selected_square = MK_SQUARE(-1, -1);
+static square_t promotion_square = MK_SQUARE(-1, -1);
 
 static void chess_print_promotion(const chess_state_t *state) {
     int col_px = SCREEN_WIDTH / 2 - PROMOTION_GUI_WIDTH / 2;
