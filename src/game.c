@@ -143,10 +143,6 @@ void tick(float deltaTime) {
 
     BeginDrawing();
 
-    if (is_in_check) {
-        is_in_check = chess_is_in_check(&state, state.current_player);
-    }
-
     ClearBackground(RAYWHITE);
     chess_print_board();
     if (checkmate_gui == 1) {
