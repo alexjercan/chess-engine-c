@@ -69,6 +69,7 @@ unsigned long chess_move_size(void);
 #define EVAL_BISHOP 300
 #define EVAL_ROOK 500
 #define EVAL_QUEEN 900
+#define EVAL_KING 100
 
 #define SQUARE_DARK 0xA97C6D
 #define SQUARE_LIGHT 0xF4D3B2

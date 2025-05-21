@@ -1,7 +1,7 @@
 import { RaylibJS, GameJS, create } from "./raylib";
 
 const FPS: number = 60;
-const MEMORY_SIZE: number = 8192;
+const MEMORY_SIZE: number = 2 * 8192;
 
 type InitPlayerFunction = (memory: number, size: number) => void;
 type InitFunction = (memory: number, size: number) => void;

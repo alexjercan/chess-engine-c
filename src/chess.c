@@ -306,17 +306,23 @@ static void chess_valid_moves(const chess_state_t *state, square_t start, ds_dyn
 
     switch (piece_type) {
         case CHESS_PAWN:
-            return chess_valid_moves_pawn(state, start, piece_color, moves, validate);
+            chess_valid_moves_pawn(state, start, piece_color, moves, validate);
+            break;
         case CHESS_KNIGHT:
-            return chess_valid_moves_knight(state, start, piece_color, moves, validate);
+            chess_valid_moves_knight(state, start, piece_color, moves, validate);
+            break;
         case CHESS_BISHOP:
-            return chess_valid_moves_bishop(state, start, piece_color, moves, validate);
+            chess_valid_moves_bishop(state, start, piece_color, moves, validate);
+            break;
         case CHESS_ROOK:
-            return chess_valid_moves_rook(state, start, piece_color, moves, validate);
+            chess_valid_moves_rook(state, start, piece_color, moves, validate);
+            break;
         case CHESS_QUEEN:
-            return chess_valid_moves_queen(state, start, piece_color, moves, validate);
+            chess_valid_moves_queen(state, start, piece_color, moves, validate);
+            break;
         case CHESS_KING:
-            return chess_valid_moves_king(state, start, piece_color, moves, validate);
+            chess_valid_moves_king(state, start, piece_color, moves, validate);
+            break;
         default:
             return;
     }
@@ -590,6 +596,8 @@ int chess_count_material(const chess_state_t *state, char current) {
                     material += EVAL_ROOK;
                 } else if ((piece & PIECE_FLAG) == CHESS_QUEEN) {
                     material += EVAL_QUEEN;
+                } else if ((piece & PIECE_FLAG) == CHESS_KING) {
+                    material += EVAL_KING;
                 }
             }
         }
@@ -613,12 +621,12 @@ static chess_board_t chess_pawn_heatmap = {
 // Where the knight wants to go from white perspective
 static chess_board_t chess_knight_heatmap = {
     0, 0, 0, 0, 0, 0, 0, 0,
-    0, 1, 1, 1, 1, 1, 0, 0,
+    0, 1, 1, 1, 1, 1, 1, 0,
     0, 1, 2, 2, 2, 1, 1, 0,
     0, 1, 2, 2, 2, 1, 1, 0,
     0, 1, 2, 2, 2, 1, 1, 0,
     0, 1, 2, 2, 2, 1, 1, 0,
-    0, 1, 1, 1, 1, 1, 0, 0,
+    0, 1, 1, 1, 1, 1, 1, 0,
     0, 0, 0, 0, 0, 0, 0, 0,
 };
 
@@ -630,8 +638,32 @@ static chess_board_t chess_bishop_heatmap = {
     0, 1, 2, 3, 3, 2, 1, 0,
     0, 1, 2, 3, 3, 2, 1, 0,
     0, 1, 2, 2, 2, 2, 1, 0,
-    0, 1, 1, 1, 1, 1, 0, 0,
+    0, 1, 1, 1, 1, 1, 1, 0,
     0, 0, 0, 0, 0, 0, 0, 0,
+};
+
+// Where the rook wants to go from white perspective
+static chess_board_t chess_rook_heatmap = {
+    0, 0, 0, 0, 0, 0, 0, 0,
+    2, 2, 2, 2, 2, 2, 2, 2,
+    0, 1, 1, 1, 1, 1, 1, 0,
+    0, 1, 1, 1, 1, 1, 1, 0,
+    0, 1, 1, 1, 1, 1, 1, 0,
+    0, 1, 1, 1, 1, 1, 1, 0,
+    0, 1, 1, 2, 2, 1, 1, 0,
+    0, 1, 2, 3, 3, 2, 1, 0,
+};
+
+// Where the king wants to go from white perspective
+static chess_board_t chess_king_heatmap = {
+    0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0,
+    0, 1, 1, 1, 1, 1, 1, 0,
+    0, 1, 1, 1, 1, 1, 1, 0,
+    0, 1, 1, 1, 1, 1, 1, 0,
+    0, 1, 1, 1, 1, 1, 1, 0,
+    0, 1, 1, 1, 1, 1, 1, 0,
+    0, 2, 1, 1, 1, 1, 2, 0,
 };
 
 int chess_count_material_weighted(const chess_state_t *state, char current) {
@@ -651,9 +683,11 @@ int chess_count_material_weighted(const chess_state_t *state, char current) {
                 } else if ((piece & PIECE_FLAG) == CHESS_BISHOP) {
                     material += (EVAL_BISHOP + 10 * chess_square_get(&chess_bishop_heatmap, heat));
                 } else if ((piece & PIECE_FLAG) == CHESS_ROOK) {
-                    material += EVAL_ROOK;
+                    material += (EVAL_ROOK + 10 * chess_square_get(&chess_rook_heatmap, heat));
                 } else if ((piece & PIECE_FLAG) == CHESS_QUEEN) {
                     material += EVAL_QUEEN;
+                } else if ((piece & PIECE_FLAG) == CHESS_KING) {
+                    material += (EVAL_KING + 10 * chess_square_get(&chess_king_heatmap, heat));
                 }
             }
         }

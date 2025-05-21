@@ -162,6 +162,8 @@ int move(arguments_t args) {
 
     DS_LOG_INFO("Move: %d,%d %d,%d", move->start.file, move->start.rank, move->end.file, move->end.rank);
 
+    ds_dynamic_array_free(&moves);
+
     return 0;
 }
 
