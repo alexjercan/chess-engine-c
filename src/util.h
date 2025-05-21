@@ -35,6 +35,7 @@ typedef struct minmax_info {
 #define MK_MOVE_SCORE(m, s) (move_score){ .move = (m), .score = (s)}
 
 typedef int(eval_fn)(const chess_state_t *, char);
+typedef int (sort_fn)(const void *, const void *);
 
 Texture2D LoadTextureCachedPiece(char piece);
 Sound LoadSoundCachedMove(char move);
@@ -52,6 +53,6 @@ void util_free(void *ptr);
 
 move_score minmax(const chess_state_t *state, move_t *choices, int count,
                   char maxxing, int depth, int alpha, int beta, eval_fn *eval,
-                  minmax_info *info);
+                  sort_fn *sort, minmax_info *info);
 
 #endif // UTIL_H

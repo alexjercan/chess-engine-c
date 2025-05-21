@@ -18,6 +18,16 @@ static int eval(const chess_state_t *state, char current) {
     return material1 - material2;
 }
 
+static int sort(const void *a, const void *b) {
+    move_t *move_a = (move_t *)a;
+    move_t *move_b = (move_t *)b;
+
+    if ((move_a->move & CHESS_CAPTURE) != 0) return -1;
+    if ((move_b->move & CHESS_CAPTURE) != 0) return 1;
+
+    return 0;
+}
+
 void chess_init(void *memory, unsigned long size) {
     util_init(memory, size);
 
@@ -33,7 +43,7 @@ void chess_move(const chess_state_t *state, move_t *choices, int count, int *ind
     clock_t start = clock();
 
     move_score s = minmax(state, choices, count, state->current_player, MINMAX_DEPTH,
-                          -MINMAX_INF, MINMAX_INF, eval, &info);
+                          -MINMAX_INF, MINMAX_INF, eval, sort, &info);
 
     clock_t end = clock();
 

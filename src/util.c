@@ -159,7 +159,7 @@ void util_free(void *ptr) {
 
 move_score minmax(const chess_state_t *state, move_t *choices, int count,
                   char maxxing, int depth, int alpha, int beta, eval_fn *eval,
-                  minmax_info *info) {
+                  sort_fn *sort, minmax_info *info) {
     char result = chess_checkmate(state);
     if (result != CHESS_NONE) {
         info->positions += 1;
@@ -193,8 +193,9 @@ move_score minmax(const chess_state_t *state, move_t *choices, int count,
         clone.current_player = chess_flip_player(clone.current_player);
 
         chess_generate_moves(&clone, &moves);
+        if (sort != NULL) ds_dynamic_array_sort(&moves, sort);
 
-        move_score value = minmax(&clone, moves.items, moves.count, maxxing, depth - 1, alpha, beta, eval, info);
+        move_score value = minmax(&clone, moves.items, moves.count, maxxing, depth - 1, alpha, beta, eval, sort, info);
 
         if (maxxing == state->current_player) {
             if (value.score > best.score) {

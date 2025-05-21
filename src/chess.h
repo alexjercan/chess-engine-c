@@ -50,6 +50,7 @@ unsigned long chess_move_size(void);
 #define CHESS_CASTLE_SHORT 8
 #define CHESS_CASTLE_LONG 16
 #define CHESS_CAPTURE 32
+#define CHESS_CHECK 64
 
 #define CHESS_PAWN 1
 #define CHESS_ROOK 2
