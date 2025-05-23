@@ -105,6 +105,12 @@ static void chess_print_board() {
     }
 }
 
+static void chess_print_state() {
+    char *fen = NULL;
+    chess_dump_fen(&state, &fen);
+    DS_LOG_INFO("FEN: %s", fen);
+}
+
 static void chess_print_message(const char *text) {
     int col_px = SCREEN_WIDTH / 2 - PROMOTION_GUI_WIDTH / 2;
     int row_px = SCREEN_HEIGHT / 2 - PROMOTION_GUI_HEIGHT / 2;
@@ -139,6 +145,8 @@ void init(void *memory, unsigned long size) {
 }
 
 void state_init(char *fen) {
+    DS_MEMSET(&state, 0, sizeof(chess_state_t));
+
     ds_string_slice fen_slice = DS_STRING_SLICE(fen);
     chess_init_fen(&state, fen_slice);
 
@@ -200,6 +208,8 @@ void tick(float deltaTime) {
             } else if (draw_gui == 0 && chess_is_draw(&state, state.current_player)) {
                 draw_gui = 1;
             }
+
+            chess_print_state();
         }
     }
 

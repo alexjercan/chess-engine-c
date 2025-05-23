@@ -84,6 +84,7 @@ boolean chess_move_get(const move_t *moves, int count, move_t filter, int *index
 #define CHESS_START "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1 "
 
 void chess_init_fen(chess_state_t *state, ds_string_slice fen);
+void chess_dump_fen(const chess_state_t *state, char **fen);
 void chess_apply_move(chess_state_t *state, move_t move);
 void chess_generate_moves(const chess_state_t *state, ds_dynamic_array *moves /* move_t */);
 char chess_flip_player(char current);

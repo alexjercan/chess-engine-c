@@ -366,7 +366,7 @@ void chess_init_fen(chess_state_t *state, ds_string_slice fen) {
                 case 'q': piece = CHESS_QUEEN | CHESS_BLACK; break;
                 case 'k': piece = CHESS_KING | CHESS_BLACK; break;
             }
-            chess_square_set(&state->board, (square_t){.rank = (CHESS_WIDTH - rank - 1), .file = file}, piece);
+            chess_square_set(&state->board, (square_t){.rank = (CHESS_HEIGHT - rank - 1), .file = file}, piece);
             file++;
         }
     }
@@ -378,6 +378,62 @@ void chess_init_fen(chess_state_t *state, ds_string_slice fen) {
     } else {
         state->current_player = CHESS_WHITE;
     }
+}
+
+void chess_dump_fen(const chess_state_t *state, char **fen) {
+    ds_string_builder sb = {0};
+    ds_string_builder_init_allocator(&sb, &allocator);
+
+    for (int rank = CHESS_HEIGHT - 1; rank >= 0; rank--) {
+        int empty = 0;
+        for (unsigned int file = 0; file < CHESS_WIDTH; file++) {
+            char piece = chess_square_get(&state->board, MK_SQUARE(rank, file));
+            if (piece == CHESS_NONE) {
+                empty++;
+            } else {
+                if (empty > 0) {
+                    ds_string_builder_append(&sb, "%d", empty);
+                    empty = 0;
+                }
+                char piece_type = piece & PIECE_FLAG;
+                char piece_color = piece & COLOR_FLAG;
+                char c = 0;
+                if (piece_type == CHESS_PAWN) c = (piece_color == CHESS_WHITE) ? 'P' : 'p';
+                if (piece_type == CHESS_ROOK) c = (piece_color == CHESS_WHITE) ? 'R' : 'r';
+                if (piece_type == CHESS_KNIGHT) c = (piece_color == CHESS_WHITE) ? 'N' : 'n';
+                if (piece_type == CHESS_BISHOP) c = (piece_color == CHESS_WHITE) ? 'B' : 'b';
+                if (piece_type == CHESS_QUEEN) c = (piece_color == CHESS_WHITE) ? 'Q' : 'q';
+                if (piece_type == CHESS_KING) c = (piece_color == CHESS_WHITE) ? 'K' : 'k';
+                ds_string_builder_append(&sb, "%c", c);
+            }
+        }
+        if (empty > 0) {
+            ds_string_builder_append(&sb, "%d", empty);
+        }
+        if (rank > 0) {
+            ds_string_builder_append(&sb, "/");
+        }
+    }
+
+    // The current player
+    ds_string_builder_append(&sb, " ");
+    ds_string_builder_append(&sb, (state->current_player == CHESS_WHITE) ? "w" : "b");
+
+    // Castling rights
+    ds_string_builder_append(&sb, " ");
+    ds_string_builder_append(&sb, "KQkq");
+
+    // En passant
+    ds_string_builder_append(&sb, " - ");
+
+    // Halfmove clock
+    ds_string_builder_append(&sb, "0");
+
+    // Fullmove number
+    ds_string_builder_append(&sb, " 1");
+
+    ds_string_builder_build(&sb, fen);
+    ds_string_builder_free(&sb);
 }
 
 char chess_square_get(const chess_board_t *board, square_t square) {
