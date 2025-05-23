@@ -138,6 +138,16 @@ void init(void *memory, unsigned long size) {
     InitAudioDevice();
 }
 
+void state_init(char *fen) {
+    ds_string_slice fen_slice = DS_STRING_SLICE(fen);
+    chess_init_fen(&state, fen_slice);
+
+    ds_dynamic_array_free(&moves);
+
+    ds_dynamic_array_init_allocator(&moves, sizeof(move_t), &allocator);
+    chess_generate_moves(&state, &moves);
+}
+
 void tick(float deltaTime) {
     UNUSED(deltaTime);
 

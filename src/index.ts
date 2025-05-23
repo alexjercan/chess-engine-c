@@ -5,12 +5,14 @@ const MEMORY_SIZE: number = 2 * 8192;
 
 type InitPlayerFunction = (memory: number, size: number) => void;
 type InitFunction = (memory: number, size: number) => void;
+type StateInitFunction = (fen: number) => void;
 type TickFunction = (deltaTime: number) => void;
 
 async function main() {
     const urlParams = new URLSearchParams(window.location.search);
     const player1Wasm = (urlParams.get("player1") || "human") + ".wasm";
     const player2Wasm = (urlParams.get("player2") || "human") + ".wasm";
+    const fenString = urlParams.get("fen");
 
     let player1 = await create(player1Wasm, new RaylibJS());
     const player1Memory = (
@@ -34,6 +36,14 @@ async function main() {
         .value;
     let init = wasm.instance.exports.init as InitFunction;
     init(memory, MEMORY_SIZE);
+
+    if (fenString) {
+        let state_init = wasm.instance.exports.state_init as StateInitFunction;
+        let fen = decodeURIComponent(fenString);
+        let ptr = raylib.malloc(fen.length + 1);
+        raylib.dumpCString(fen, ptr);
+        state_init(ptr);
+    }
 
     let fpsInterval = 1000 / FPS;
     let then = Date.now();

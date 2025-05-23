@@ -13,6 +13,8 @@ extern void move_player1_fn(const chess_state_t *state, move_t *choices, int cou
 extern void move_player2_fn(const chess_state_t *state, move_t *choices, int count, int *index);
 
 void init(void *memory, unsigned long size);
+void state_init(char *fen);
+
 void tick(float deltaTime);
 
 #endif // GAME_H

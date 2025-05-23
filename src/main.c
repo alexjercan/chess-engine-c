@@ -14,6 +14,7 @@ typedef struct arguments_t {
     int depth;
     char *player1;
     char *player2;
+    char *fen;
 } arguments_t;
 
 init_fn init_player1 = NULL;
@@ -68,12 +69,21 @@ void parse_arguments(int argc, char **argv, arguments_t *args) {
         .required = false,
     });
 
+    ds_argparse_add_argument(&parser, (ds_argparse_options){
+        .short_name = 'f',
+        .long_name = "fen",
+        .description = "the FEN string to use for the game",
+        .type = ARGUMENT_TYPE_VALUE,
+        .required = false,
+    });
+
     DS_UNREACHABLE(ds_argparse_parse(&parser, argc, argv));
 
     args->subcmd = ds_argparse_get_value_or_default(&parser, "subcmd", SUBCMD_GAME);
     args->depth = atoi(ds_argparse_get_value_or_default(&parser, "depth", "0"));
     args->player1 = ds_argparse_get_value(&parser, "player1");
     args->player2 = ds_argparse_get_value(&parser, "player2");
+    args->fen = ds_argparse_get_value_or_default(&parser, "fen", CHESS_START);
 
     ds_argparse_parser_free(&parser);
 }
@@ -113,6 +123,8 @@ int game(arguments_t args) {
     init_player2_fn(NULL, 0);
 
     init(NULL, 0);
+    state_init(args.fen);
+
     while (!WindowShouldClose()) {
         tick(GetFrameTime());
     }
@@ -122,18 +134,18 @@ int game(arguments_t args) {
     return 0;
 }
 
-int count_positions(int depth) {
+int count_positions(arguments_t args) {
     chess_state_t state = {0};
 
-    ds_string_slice fen = DS_STRING_SLICE(CHESS_START);
+    ds_string_slice fen = DS_STRING_SLICE(args.fen);
     chess_init_fen(&state, fen);
 
     perft_t perft = {0};
-    chess_count_positions(&state, depth, &perft);
+    chess_count_positions(&state, args.depth, &perft);
     DS_LOG_INFO("Depth: %d => Positions: %d Captures: %d E.p.: %d Castles: %d "
                 "Promotions: %d Checks: %d Checkmates: %d",
-                depth, perft.nodes, perft.captures, perft.enp, perft.castles,
-                perft.promote, perft.checks, perft.checkmates);
+                args.depth, perft.nodes, perft.captures, perft.enp,
+                perft.castles, perft.promote, perft.checks, perft.checkmates);
 
     return 0;
 }
@@ -149,7 +161,7 @@ int move(arguments_t args) {
     chess_state_t state = {0};
     ds_dynamic_array moves = {0}; /* move_t */
 
-    ds_string_slice fen = DS_STRING_SLICE(CHESS_START);
+    ds_string_slice fen = DS_STRING_SLICE(args.fen);
     chess_init_fen(&state, fen);
 
     ds_dynamic_array_init_allocator(&moves, sizeof(move_t), NULL);
@@ -174,7 +186,7 @@ int main(int argc, char **argv) {
     if (DS_STRCMP(args.subcmd, SUBCMD_GAME) == 0) {
         return game(args);
     } else if (DS_STRCMP(args.subcmd, SUBCMD_COUNT_POSITIONS) == 0) {
-        return count_positions(args.depth);
+        return count_positions(args);
     } else if (DS_STRCMP(args.subcmd, SUBCMD_MOVE) == 0) {
         return move(args);
     }

@@ -400,12 +400,30 @@ export class RaylibJS implements WasmModule {
         }
     }
 
+    malloc(size: number): number {
+        const malloc = this.wasm!.instance.exports.util_malloc as UtilMallocFunction;
+        const ptr = malloc(size);
+
+        return ptr;
+    }
+
     rand(): number {
         return Math.floor(Math.random() * 2147483647);
     }
 
     clock(): number {
         return Date.now();
+    }
+
+    dumpCString(
+        value: string,
+        addr: number
+    ): void {
+        const memory = new Uint8Array(
+            (this.wasm!.instance.exports.memory as WebAssembly.Memory).buffer
+        );
+
+        dumpCString(memory, value, addr);
     }
 }
 
